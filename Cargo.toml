@@ -1,0 +1,9 @@
+[package]
+name = "bob-rov"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bno055 = { version = "0.4.0", features = ["std"] }
+rpi-pal = { version = "0.22.2", features = ["hal"] }
+tokio = "1.48.0"
