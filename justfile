@@ -8,7 +8,7 @@ build profile="debug":
 
 # Sync project files to Pi
 _sync-generic profile="debug":
-    rsync -avzrh --exclude 'target'./ {{pi_user}}@{{pi_host}}:{{pi_path}}/
+    rsync -avzrh --include 'Cargo.toml' --include 'src' --include '.cargo' --exclude './'./ {{pi_user}}@{{pi_host}}:{{pi_path}}/
 
 # Build and sync to Pi
 sync profile="debug": (build profile) (_sync-generic profile)
