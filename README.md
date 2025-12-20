@@ -17,12 +17,18 @@
 3. You can chagne any other settings to your preferences, with particular attention to `Localization Options`
 
 # Building, Running, and Testing
-Thanks to the justfile this is rather trivial. Assuming you've done everything else correct previously, you have the following options. Note that the default behavior is, as is done with cargo, to build the dev profile.\
-Prepend `release` to build for release.\
-Example: `just run release` to build, sync, and run a release build.
+Thanks to the justfile this is rather trivial
+
+### Options
+You have the following options for easily building and syncing with the pi:
 - Run `just build` to build.
 - Run `just sync` to build and sync to the pi.
 - Run `just deploy-binary` to build and deploy the binary to pi. (THIS ONLY COPIES THE BINARY AND DOES NOT PERFORM A SYNC)
 - Run `just run` to build, deploy, and run the binary on the pi. (THIS ONLY COPIES THE BINARY AND DOES NOT PERFORM A SYNC)
 - Run `just run-cargo` to build, sync, and `cargo run` on the pi.
 - Run `just test-cargo` to build, sync and `cargo test` on the pi.
+
+### Note:
+The default behavior is, as is done with cargo, to build the dev profile.\
+Prepend `release` to build for release.\
+**Example:** run `just run release` to build, sync, and run a release build.\
