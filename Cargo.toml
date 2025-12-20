@@ -2,8 +2,21 @@
 name = "bob-rov"
 version = "0.1.0"
 edition = "2024"
+license = "AGPL-3.0-or-later"
 
 [dependencies]
 bno055 = { version = "0.4.0", features = ["std"] }
 rpi-pal = { version = "0.22.2", features = ["hal"] }
 tokio = "1.48.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+incremental = true
+
+[profile.dev]
+opt-level = 0
+lto = false
+codegen-units = 512
+incremental = true

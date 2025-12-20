@@ -1,8 +1,8 @@
-use std::{error::Error, thread, time::Duration};
+use std::{thread, time::Duration};
 
 fn main() -> ! {
     loop {
-        println!("Hello, world!");
-        thread::sleep(Duration::from_millis(10));
+        println!("Hello World!");
+        thread::sleep(Duration::from_millis(50));
     }
 }
