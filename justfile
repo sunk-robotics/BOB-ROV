@@ -8,14 +8,14 @@ build profile="debug":
 
 # Sync project files to Pi
 _sync-generic profile="debug":
-    rsync -avzrh --exclude 'target' --include 'target/aarch64-unknown-linux-gnu/{{profile}}/my-app' ./ {{pi_user}}@{{pi_host}}:{{pi_path}}/
+    rsync -avzrh --exclude 'target'./ {{pi_user}}@{{pi_host}}:{{pi_path}}/
 
 # Build and sync to Pi
 sync profile="debug": (build profile) (_sync-generic profile)
 
 # Deploy binary to Pi
 _deploy-binary-generic profile="debug":
-    scp target/aarch64-unknown-linux-gnu/{{profile}}/bob-rov {{pi_user}}@{{pi_host}}:{{pi_path}}/bob-rov
+    rsync -avz target/aarch64-unknown-linux-gnu/{{profile}}/bob-rov {{pi_user}}@{{pi_host}}:{{pi_path}}/bob-rov
 
 # Build and deploy binary to Pi
 deploy-binary profile="debug": (build profile) (_deploy-binary-generic profile)
