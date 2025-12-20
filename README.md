@@ -18,7 +18,7 @@
 
 # Building, Running, and Testing
 Thanks to the justfile this is rather trivial
-### Options
+### Options:
 You have the following options for easily building and syncing with the pi:
 - Run `just build` to build.
 - Run `just sync` to build and sync to the pi.
@@ -29,4 +29,4 @@ You have the following options for easily building and syncing with the pi:
 ### Note:
 The default behavior is, as is done with cargo, to build the dev profile.\
 Prepend `release` to build for release.\
-**Example:** run `just run release` to build, sync, and run a release build.\
+**Example:** Run `just run release` to build, sync, and run a release build.
