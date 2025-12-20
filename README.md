@@ -1,5 +1,4 @@
 # Setup
-
 ## Host Machine
 1. Install rustup, instructions can be found [here](https://rustup.rs)
 2. Run `rustup target add aarch64-unknown-linux-gnu` to enable cross-compilation

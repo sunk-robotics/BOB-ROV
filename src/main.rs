@@ -1,8 +1,19 @@
-use std::{thread, time::Duration};
+mod spi_interface;
+mod config;
 
-fn main() -> ! {
-    loop {
-        println!("Hello World!");
-        thread::sleep(Duration::from_millis(50));
-    }
+use std::error::Error;
+use spi_interface::spi_interface_handler;
+use tracing_subscriber::FmtSubscriber;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(tracing::Level::TRACE)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber)?;
+
+
+    let spi = config::spi::new()?;
+    tokio::spawn(spi_interface_handler(spi));
+    Ok(())
 }
