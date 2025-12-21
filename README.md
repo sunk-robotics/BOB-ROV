@@ -26,8 +26,9 @@ You have the following options for easily building and syncing with the pi:
 - Run `just run-cargo` to build, sync, and `cargo run` on the pi.
 - Run `just test-cargo` to build, sync and `cargo test` on the pi.
 ### Notes:
-You can pass any arguments after the commands that would be valid for the corresponding cargo command.\
-`build`, `sync`, `deploy-binary`, and `run` will take in the arguments to the `cargo build` that is run as part of their process\
-This is because `run` and `deploy-binary` build the executable on the host machine, and than copy it over for faster build times.\
+You can pass any arguments after the commands that would be valid for the corresponding cargo command.
+
+`build`, `sync`, `deploy-binary`, and `run` will take in the arguments to `cargo build`, as that is run as part of their process\
+This is because `run` and `deploy-binary` build the executable on the host machine, and than copy it over for faster build times.
 
 `run-cargo` and `test-cargo` take in the arguments to `cargo run` or `cargo test` respectively.
