@@ -12,8 +12,9 @@ pub mod spi {
     pub const CLOCK_SPEED: u32 = 12_500_000;
 }
 
-#[cfg(feature = "imu")]
+#[cfg(feature = "i2c")]
 pub mod i2c {
+
     use rpi_pal::i2c::{self, I2c};
 
     #[inline(always)]
@@ -22,4 +23,11 @@ pub mod i2c {
     }
 
     pub const BUS: u8 = 1;
+}
+
+#[cfg(feature = "imu")]
+pub mod imu {
+    pub const CALIB_CACHE_LOCATION: &str = "./cache/imu_calib";
+
+    // TODO: Other bno055 configuration; axis maps, etc.
 }

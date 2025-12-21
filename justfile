@@ -1,6 +1,6 @@
 pi_user := "sunk"
 pi_host := "192.168.1.71"
-pi_path := "~/software"
+pi_path := "~/"
 
 # Build with any additional cargo arguments
 build *args="":
