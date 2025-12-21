@@ -1,11 +1,8 @@
 mod spi_interface;
 mod config;
 
-use bno055::{BNO055OperationMode, Bno055};
-use rpi_pal::hal::Delay;
 use spi_interface::spi_interface_handler;
 use tokio::runtime;
-use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 
 fn main() {
@@ -23,23 +20,33 @@ fn main() {
     let spi = config::spi::new()
         .unwrap_or_else(|err| panic!("Failed to initialize SPI peripheral! Error: {err}"));
 
-    let i2c = config::i2c::new()
-        .unwrap_or_else(|err| panic!("Failed to initlize I2C peripheral! Error {err}"));
+    #[cfg(feature = "imu")]
+    {
+        use bno055::Bno055;
+        use rpi_pal::hal::Delay;
+        use tracing::info;
 
-    let mut delay = Delay::new();
-    let mut imu = Bno055::new(i2c);
-    imu.init(&mut delay).unwrap_or_else(|err| panic!("Failed to initiate IMU peripheral! Error: {err}"));
-    imu.set_mode(BNO055OperationMode::NDOF, &mut delay)
-        .unwrap_or_else(|err| panic!("Failed to set IMU to NDOF mode! Error: {err}"));
+        let i2c = config::i2c::new()
+            .unwrap_or_else(|err| panic!("Failed to initlize I2C peripheral! Error {err}"));
 
-    info!("Calibrating ...\nPlease perform steps described in Datasheet section 3.1.1");
-    while !imu.is_fully_calibrated().expect("Calibration check error!") {}
+        let mut delay = Delay::new();
+        let mut imu = Bno055::new(i2c);
+        imu.init(&mut delay).unwrap_or_else(|err| panic!("Failed to initiate IMU peripheral! Error: {err}"));
 
-    let calib = imu.calibration_profile(&mut delay)
-        .unwrap_or_else(|err| panic!("Failed to fetch imu calibration profile! Error: {err}"));
-    
-    // TODO: write calibration to binary file on disk, and load if present.
+        #[cfg(feature = "imu-force-recalib")]
+        {
+            use bno055::BNO055OperationMode;
+            imu.set_mode(BNO055OperationMode::NDOF, &mut delay)
+            .unwrap_or_else(|err| panic!("Failed to set IMU to NDOF mode! Error: {err}"));
+            info!("Calibrating ...\nPlease perform steps described in Datasheet section 3.1.1");
+            while !imu.is_fully_calibrated().expect("Calibration check error!") {}
 
+            let calib = imu.calibration_profile(&mut delay)
+                .unwrap_or_else(|err| panic!("Failed to fetch imu calibration profile! Error: {err}"));
+            
+            // TODO: write calibration to binary file on disk, and load if present.
+        }
+    }
 
     rt.block_on(async move {
         tokio::spawn(spi_interface_handler(spi));

@@ -25,7 +25,9 @@ You have the following options for easily building and syncing with the pi:
 - Run `just run` to build, deploy, and run the binary on the pi. (THIS ONLY COPIES THE BINARY AND DOES NOT PERFORM A SYNC)
 - Run `just run-cargo` to build, sync, and `cargo run` on the pi.
 - Run `just test-cargo` to build, sync and `cargo test` on the pi.
-### Note:
-The default behavior is, as is done with cargo, to build the dev profile.\
-Prepend `release` to build for release.\
-**Example:** Run `just run release` to build, sync, and run a release build.
+### Notes:
+You can pass any arguments after the commands that would be valid for the corresponding cargo command.\
+`build`, `sync`, `deploy-binary`, and `run` will take in the arguments to the `cargo build` that is run as part of their process\
+This is because `run` and `deploy-binary` build the executable on the host machine, and than copy it over for faster build times.\
+
+`run-cargo` and `test-cargo` take in the arguments to `cargo run` or `cargo test` respectively.

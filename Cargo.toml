@@ -5,7 +5,7 @@ edition = "2024"
 license = "AGPL-3.0-or-later"
 
 [dependencies]
-bno055 = { version = "0.4.0", features = ["std"] }
+bno055 = { version = "0.4.0", features = ["std"], optional = true }
 rp2040-dshot = "0.0.5"
 rpi-pal = { version = "0.22.2", features = ["hal"] }
 tokio = { version = "1.48.0", features = ["rt-multi-thread"] }
@@ -23,3 +23,8 @@ opt-level = 0
 lto = false
 codegen-units = 512
 incremental = true
+
+[features]
+default = []
+imu = ["bno055"]
+imu-force-recalib = ["imu"]

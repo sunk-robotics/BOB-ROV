@@ -2,41 +2,41 @@ pi_user := "sunk"
 pi_host := "192.168.1.71"
 pi_path := "~/software"
 
-# Build with specified profile (debug or release)
-build profile="debug":
-    cargo build -j $(nproc) {{ if profile == "release" { "--release" } else { "" } }} --target aarch64-unknown-linux-gnu
+# Build with any additional cargo arguments
+build *args="":
+    cargo build -j $(nproc) --target aarch64-unknown-linux-gnu {{args}}
 
 # Sync project files to Pi
-_sync-generic profile="debug":
+_sync-generic:
     rsync -avzrh --include 'Cargo.toml' --include 'src' --include '.cargo' --exclude './'./ {{pi_user}}@{{pi_host}}:{{pi_path}}/
 
 # Build and sync to Pi
-sync profile="debug": (build profile) (_sync-generic profile)
+sync *args="": (build args) _sync-generic
 
-# Deploy binary to Pi
-_deploy-binary-generic profile="debug":
-    rsync -avz target/aarch64-unknown-linux-gnu/{{profile}}/bob-rov {{pi_user}}@{{pi_host}}:{{pi_path}}/bob-rov
+# Deploy binary to Pi (looks in debug by default, pass --release to change)
+_deploy-binary-generic *args="":
+    rsync -avz target/aarch64-unknown-linux-gnu/{{ if args =~ "--release" { "release" } else { "debug" } }}/bob-rov {{pi_user}}@{{pi_host}}:{{pi_path}}/bob-rov
 
 # Build and deploy binary to Pi
-deploy-binary profile="debug": (build profile) (_deploy-binary-generic profile)
+deploy-binary *args="": (build args) (_deploy-binary-generic args)
 
 # Run binary on Pi (generic helper)
 _run-generic:
     ssh {{pi_user}}@{{pi_host}} "cd {{pi_path}} && ./bob-rov"
 
 # Build, deploy, and run the binary on Pi
-run profile="debug": (deploy-binary profile) _run-generic
+run *args="": (deploy-binary args) _run-generic
 
 # Run cargo run on Pi (generic helper)
-_run-cargo-generic profile="debug":
-    ssh {{pi_user}}@{{pi_host}} "cd {{pi_path}} && cargo run -j $(nproc) {{ if profile == "release" { "--release" } else { "" } }}"
+_run-cargo-generic *args="":
+    ssh {{pi_user}}@{{pi_host}} "cd {{pi_path}} && cargo run -j $(nproc) {{args}}"
 
 # Sync and run cargo run on Pi (will rebuild there)
-run-cargo profile="debug": (sync profile) (_run-cargo-generic profile)
+run-cargo *args="": sync (_run-cargo-generic args)
 
 # Run cargo test on Pi (generic helper)
-_test-cargo-generic profile="debug":
-    ssh {{pi_user}}@{{pi_host}} "cd {{pi_path}} && cargo test -j $(nproc) {{ if profile == "release" { "--release" } else { "" } }}"
+_test-cargo-generic *args="":
+    ssh {{pi_user}}@{{pi_host}} "cd {{pi_path}} && cargo test -j $(nproc) {{args}}"
 
 # Sync and run cargo test on Pi (will rebuild there)
-test-cargo profile="debug": (sync profile) (_test-cargo-generic profile)
+test-cargo *args="": sync (_test-cargo-generic args)

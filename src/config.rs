@@ -12,6 +12,7 @@ pub mod spi {
     pub const CLOCK_SPEED: u32 = 12_500_000;
 }
 
+#[cfg(feature = "imu")]
 pub mod i2c {
     use rpi_pal::i2c::{self, I2c};
 
