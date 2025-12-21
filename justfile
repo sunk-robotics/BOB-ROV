@@ -4,7 +4,7 @@ pi_path := "~/software"
 
 # Build with any additional cargo arguments
 build *args="":
-    cargo build -j $(nproc) --target aarch64-unknown-linux-gnu {{args}}
+    cargo build -j $(nproc) {{args}}
 
 # Sync project files to Pi
 _sync-generic:
