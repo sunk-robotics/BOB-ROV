@@ -28,27 +28,67 @@ You have the following options for easily building and syncing with the pi:
 ## Cargo arguments:
 You can pass any arguments after the commands that would be valid for the corresponding cargo command.
 
-`build`, `sync`, `deploy-binary`, and `run` will take in the arguments to `cargo build`, as that is run as part of their process\
+`build`, `deploy-binary`, and `run` will take in the arguments to `cargo build`, as that is run as part of their process\
 This is because `run` and `deploy-binary` build the executable on the host machine, and than copy it over for faster build times.
 
 `run-cargo` and `test-cargo` take in the arguments to `cargo run` or `cargo test` respectively.
 ## Environment Variables:
-The `run`, `run-cargo`, and `test-cargo` commands support passing environment variables to the Pi execution environment.
+### Build-time vs Runtime Environment Variables
+- **Build-time variables** (like `RUSTFLAGS`) affect compilation and must be set when cargo compiles the code
+- **Runtime variables** (like `RUST_LOG`) affect the running program and are set when executing the binary
 
-**For `run` (binary execution):**
+### For `build`, `run` & `deploy-binary` (pre-compiled binary):
+Since the binary is built on the host machine, build-time variables must be set locally before calling `just`. Run-time variables can be passed to `run` after:
 ```bash
-just run "RUST_LOG=debug TOKIO_CONSOLE=1" -r --features tokio-console
+# Syntax: BUILD_ENVs just build/deploy-binary [cargo-args]
+RUSTFLAGS="--cfg tokio_unstable" just build -r --features tokio-console
+
+# Syntax: BUILD_ENVs just run "RUNTIME_ENVs" [cargo-args]
+RUSTFLAGS="--cfg tokio_unstable" just run "RUST_LOG=trace" -r --features tokio-console
 ```
 
-**For `run-cargo` and `test-cargo`:**
+### For `run-cargo` and `test-cargo`:
+These commands compile on the Pi, so both build-time and runtime variables need to be passed through SSH:
 ```bash
-just run-cargo "RUST_LOG=trace TOKIO_CONSOLE=1" -r --features tokio-console imu-force-recalib
-just test-cargo "RUST_LOG=debug" -- --test-threads=1
+# Syntax: just run-cargo "BUILD_ENVs" "RUNTIME_ENVs" [cargo-args]
+just run-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace" -r --features tokio-console
+
+# Syntax: just test-cargo "BUILD_ENVs" "RUNTIME_ENVs" [cargo-args]
+just test-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace" -r --features tokio-console
 ```
 
-Environment variables should be passed as a single quoted string containing space-separated `KEY=value` pairs, placed before any cargo arguments. 
-Multiple environment variables can be set in the same string.
+**Note**: You may need single quotes around build-time variables to preserve the inner double quotes.
 
-**Available variables include:**
-- `RUST_LOG` Allows for a myriad of options, (more information can be found [here](https://docs.rs/tracing-subscriber/0.3.22/tracing_subscriber/filter/struct.EnvFilter.html)) although you like mainly use this to set the log level. Options include `trace`, `info`, `debug`, `warn`, and `error`.
-- `TOKIO_CONSOLE` Setting this to 1 enables the tokio console. The `tokio-console` feature must be enabled for this flag to do anything.
+### Common use cases:
+**Basic logging:**
+```bash
+# With pre-compiled binary
+just run "RUST_LOG=debug" -r
+
+# With cargo run
+just run-cargo "" "RUST_LOG=debug" -r
+```
+
+**Tokio Console (requires unstable flag + feature):**
+```bash
+# With pre-compiled binary
+RUSTFLAGS="--cfg tokio_unstable" just run "RUST_LOG=trace" -r --features tokio-console
+
+# With cargo run
+just run-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace" -r --features tokio-console
+```
+
+**Multiple environment variables:**
+```bash
+# Runtime only
+just run "RUST_LOG=debug RUST_BACKTRACE=1" -r
+
+# Build-time and runtime
+just run-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace RUST_BACKTRACE=full" --features tokio-console
+```
+
+**No environment variables needed:**
+```bash
+# Or omit them entirely
+just run-cargo -r
+```

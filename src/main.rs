@@ -24,11 +24,7 @@ fn main() {
         .with(EnvFilter::from_default_env());
 
     #[cfg(feature = "tokio-console")]
-    if std::env::var("TOKIO_CONSOLE").is_ok() {
-        subscriber.with(console_subscriber::spawn()).init();
-    } else {
-        subscriber.init();
-    }
+    subscriber.with(console_subscriber::spawn()).init();
 
     #[cfg(not(feature = "tokio-console"))]
     subscriber.init();

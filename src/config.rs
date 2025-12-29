@@ -32,6 +32,7 @@ pub mod imu {
     use bno055::{AxisRemap, BNO055AxisConfig};
 
     pub const CALIB_CACHE_LOCATION: &str = "./cache/imu_calib";
+    pub const CALIB_READY_CHECK_INTERVAL: u64 = 250; // ms
 
     // If some swaps the named axis with the axis inside the option.
     pub const SWAP_X: Option<BNO055AxisConfig> = None;

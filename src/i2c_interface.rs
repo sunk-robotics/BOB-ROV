@@ -93,6 +93,7 @@ fn calibrate_imu(
     delay: &mut rpi_pal::hal::Delay
 ) {
     use bno055::BNO055OperationMode;
+    use std::time::Duration;
 
     let mode_orig = imu.get_mode()
         .unwrap_or_else(|err| panic!("Failed to get IMU mode! Error: {err}"));
@@ -102,8 +103,6 @@ fn calibrate_imu(
 
     tracing::info!("Calibrating ...\nPlease perform steps described in Datasheet section 3.1.1");
     loop {
-        use std::time::Duration;
-
         let status = imu.get_calibration_status()
             .unwrap_or_else(|err| panic!("Failed to get IMU calibration status! Error: {err}"));
 
@@ -112,7 +111,7 @@ fn calibrate_imu(
         info!("Current IMU magnometer calibration status: {}", status.mag);
 
         if status.gyr == 3 && status.acc == 3 && status.mag == 3 { break; }
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(config::imu::CALIB_READY_CHECK_INTERVAL));
     }
 
     imu.set_mode(mode_orig, delay)
