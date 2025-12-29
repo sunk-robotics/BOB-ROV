@@ -32,3 +32,23 @@ You can pass any arguments after the commands that would be valid for the corres
 This is because `run` and `deploy-binary` build the executable on the host machine, and than copy it over for faster build times.
 
 `run-cargo` and `test-cargo` take in the arguments to `cargo run` or `cargo test` respectively.
+### Environment Variables:
+The `run`, `run-cargo`, and `test-cargo` commands support passing environment variables to the Pi execution environment.
+
+**For `run` (binary execution):**
+```bash
+just run "RUST_LOG=debug TOKIO_CONSOLE=1" -r --features tokio-console
+```
+
+**For `run-cargo` and `test-cargo`:**
+```bash
+just run-cargo "RUST_LOG=trace TOKIO_CONSOLE=1" -r --features tokio-console imu-force-recalib
+just test-cargo "RUST_LOG=debug" -- --test-threads=1
+```
+
+Environment variables should be passed as a single quoted string containing space-separated `KEY=value` pairs, placed before any cargo arguments. 
+Multiple environment variables can be set in the same string.
+
+**Available variables include:**
+- `RUST_LOG` Allows for a myriad of options, (more information can be found [here](https://docs.rs/tracing-subscriber/0.3.22/tracing_subscriber/filter/struct.EnvFilter.html)) although you like mainly use this to set the log level. Options include `trace`, `info`, `debug`, `warn`, and `error`.
+- `TOKIO_CONSOLE` Setting this to 1 enables the tokio console. The `tokio-console` feature must be enabled for this flag to do anything.

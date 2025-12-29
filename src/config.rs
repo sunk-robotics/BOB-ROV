@@ -1,3 +1,4 @@
+#[cfg(feature = "spi")]
 pub mod spi {
     use rpi_pal::spi::{self, Spi};
 
@@ -19,7 +20,8 @@ pub mod i2c {
 
     #[inline(always)]
     pub fn new() -> Result<I2c, i2c::Error> {
-        I2c::with_bus(BUS)
+        let i2c = I2c::with_bus(BUS)?;
+        Ok(i2c)
     }
 
     pub const BUS: u8 = 1;
@@ -27,7 +29,23 @@ pub mod i2c {
 
 #[cfg(feature = "imu")]
 pub mod imu {
+    use bno055::{AxisRemap, BNO055AxisConfig};
+
     pub const CALIB_CACHE_LOCATION: &str = "./cache/imu_calib";
 
+    // If some swaps the named axis with the axis inside the option.
+    pub const SWAP_X: Option<BNO055AxisConfig> = None;
+    pub const SWAP_Y: Option<BNO055AxisConfig> = None;
+    pub const SWAP_Z: Option<BNO055AxisConfig> = None;
+
     // TODO: Other bno055 configuration; axis maps, etc.
+    pub fn get_axis_map() -> Result<AxisRemap, ()> {
+        let mut remap = AxisRemap::builder();
+
+        if let Some(x) = SWAP_X { remap = remap.swap_x_with(x) }
+        if let Some(y) = SWAP_Y { remap = remap.swap_y_with(y) }
+        if let Some(z) = SWAP_Z { remap = remap.swap_z_with(z) }
+
+        remap.build()
+    }
 }

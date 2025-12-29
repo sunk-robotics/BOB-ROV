@@ -1,9 +1,15 @@
+#[cfg(feature = "spi")]
 mod spi_interface;
+
+#[cfg(feature = "i2c")]
+mod i2c_interface;
+
 mod config;
 
-use spi_interface::spi_interface_handler;
 use tokio::runtime;
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt};
 
 fn main() {
     let rt = runtime::Builder::new_multi_thread()
@@ -12,84 +18,28 @@ fn main() {
         .build()
         .unwrap_or_else(|err| panic!("Failed to create tokio lifetime! Error: {err}"));
 
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(tracing::Level::TRACE)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to start tracing subscriber!");
+    let subscriber = tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(LevelFilter::INFO)
+        .with(EnvFilter::from_default_env());
 
-    let spi = config::spi::new()
-        .unwrap_or_else(|err| panic!("Failed to initialize SPI peripheral! Error: {err}"));
-
-    #[cfg(feature = "imu")]
-    {
-        use std::fs;
-
-        use bno055::{Bno055, BNO055Calibration};
-        use rpi_pal::hal::Delay;
-
-        let i2c = config::i2c::new()
-            .unwrap_or_else(|err| panic!("Failed to initlize I2C peripheral! Error {err}"));
-
-        let mut delay = Delay::new();
-        let mut imu = Bno055::new(i2c);
-        imu.init(&mut delay).unwrap_or_else(|err| panic!("Failed to initiate IMU peripheral! Error: {err}"));
-
-        #[cfg(not(feature = "imu-force-recalib"))]
-        if fs::exists(config::imu::CALIB_CACHE_LOCATION)
-            .unwrap_or_else(|err| panic!("Failed to get imu calibration cache file status. Error {err}"))
-        {            
-            let calib_profile = BNO055Calibration::from_buf(fs::read(config::imu::CALIB_CACHE_LOCATION)
-                .unwrap_or_else(|err| panic!("Failed to read imu calibration cache data! Error: {err}"))
-                .as_slice()
-                .try_into()
-                .expect("Invalid imu calibration cache size!"));
-            
-            imu.set_calibration_profile(calib_profile, &mut delay)
-                .unwrap_or_else(|err| panic!("Failed to set imu calibration profile! Error: {err}"));
-        } else {
-            calibrate_imu(&mut imu, &mut delay);
-            write_imu_calib(&mut imu, &mut delay);
-        }
-
-        #[cfg(feature = "imu-force-recalib")]
-        {
-            calibrate_imu(&mut imu, &mut delay);
-            write_imu_calib(&mut imu, &mut delay);
-        }
-
-        // TODO: Other bno055 configuration; axis maps, etc.
+    #[cfg(feature = "tokio-console")]
+    if std::env::var("TOKIO_CONSOLE").is_ok() {
+        subscriber.with(console_subscriber::spawn()).init();
+    } else {
+        subscriber.init();
     }
 
+    #[cfg(not(feature = "tokio-console"))]
+    subscriber.init();
+
     rt.block_on(async move {
-        tokio::spawn(spi_interface_handler(spi));
+        #[cfg(feature = "spi")]
+        tokio::spawn(spi_interface::interface_handler());
+        #[cfg(feature = "i2c")]
+        tokio::spawn(i2c_interface::interface_handler());
 
         // Keep the runtime alive.
         std::future::pending::<()>().await;
     });
-}
-
-#[cfg(feature = "imu")]
-#[inline(always)]
-fn calibrate_imu(imu: &mut bno055::Bno055<rpi_pal::i2c::I2c>, delay: &mut dyn embedded_hal::delay::DelayNs) {
-    let mode_orig = imu.get_mode()
-        .unwrap_or_else(|err| panic!("Failed to get IMU mode! Error: {err}"));
-
-    imu.set_mode(bno055::BNO055OperationMode::NDOF, delay)
-        .unwrap_or_else(|err| panic!("Failed to set IMU to NDOF mode! Error: {err}"));
-
-    tracing::info!("Calibrating ...\nPlease perform steps described in Datasheet section 3.1.1");
-    while !imu.is_fully_calibrated().expect("Calibration check error!") {}
-
-    imu.set_mode(mode_orig, delay)
-        .unwrap_or_else(|err| panic!("Failed to restore original IMU mode! Error: {err}"));
-}
-
-#[cfg(feature = "imu")]
-#[inline(always)]
-fn write_imu_calib(imu: &mut bno055::Bno055<rpi_pal::i2c::I2c>, delay: &mut dyn embedded_hal::delay::DelayNs) {
-    let calib = imu.calibration_profile(delay)
-        .unwrap_or_else(|err| panic!("Failed to fetch imu calibration profile! Error: {err}"));
-
-    std::fs::write(config::imu::CALIB_CACHE_LOCATION, calib.as_bytes())
-        .unwrap_or_else(|err| panic!("Failed to write imu calibration catche to disk! Error {err}"));
 }
