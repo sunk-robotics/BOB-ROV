@@ -106,9 +106,7 @@ fn calibrate_imu(
         let status = imu.get_calibration_status()
             .unwrap_or_else(|err| panic!("Failed to get IMU calibration status! Error: {err}"));
 
-        info!("Current IMU gyroscope calibration status: {}", status.gyr);
-        info!("Current IMU accelerometer calibration status: {}", status.acc);
-        info!("Current IMU magnometer calibration status: {}", status.mag);
+        info!("Current IMU calibration status: gyro: {}, accelerometer: {}, magnometer: {}", status.gyr, status.acc, status.mag);
 
         if status.gyr == 3 && status.acc == 3 && status.mag == 3 { break; }
         std::thread::sleep(Duration::from_millis(config::imu::CALIB_READY_CHECK_INTERVAL));

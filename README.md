@@ -42,6 +42,7 @@ Since the binary is built on the host machine, build-time variables must be set 
 ```bash
 # Syntax: BUILD_ENVs just build/deploy-binary [cargo-args]
 RUSTFLAGS="--cfg tokio_unstable" just build -r --features tokio-console
+RUSTFLAGS="--cfg tokio_unstable" just deploy-binary -r --features tokio-console
 
 # Syntax: BUILD_ENVs just run "RUNTIME_ENVs" [cargo-args]
 RUSTFLAGS="--cfg tokio_unstable" just run "RUST_LOG=trace" -r --features tokio-console
@@ -50,17 +51,17 @@ RUSTFLAGS="--cfg tokio_unstable" just run "RUST_LOG=trace" -r --features tokio-c
 ### For `run-cargo` and `test-cargo`:
 These commands compile on the Pi, so both build-time and runtime variables need to be passed through SSH:
 ```bash
-# Syntax: just run-cargo "BUILD_ENVs" "RUNTIME_ENVs" [cargo-args]
+# Syntax: just run-cargo/test-cargo "BUILD_ENVs" "RUNTIME_ENVs" [cargo-args]
 just run-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace" -r --features tokio-console
-
-# Syntax: just test-cargo "BUILD_ENVs" "RUNTIME_ENVs" [cargo-args]
 just test-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace" -r --features tokio-console
 ```
 
 **Note**: You may need single quotes around build-time variables to preserve the inner double quotes.
 
 ### Common use cases:
-**Basic logging:**
+**Logging:**
+More complete information on the `RUST_LOG` env syntax can be found [here](https://docs.rs/tracing-subscriber/0.3.22/tracing_subscriber/filter/struct.EnvFilter.html),
+but the most useful option will likely be the logging level, which can be adjusted, in descending order of verbosity with with `RUST_LOG=trace/debug/info/warn/error`
 ```bash
 # With pre-compiled binary
 just run "RUST_LOG=debug" -r
@@ -70,6 +71,11 @@ just run-cargo "" "RUST_LOG=debug" -r
 ```
 
 **Tokio Console (requires unstable flag + feature):**
+Detailed information can be found [here](https://docs.rs/tokio-console/0.1.14/tokio_console/)\
+Generally:
+- Install with `cargo install --locked tokio-console`
+- Run one of the below command to run with console output
+- run `tokio-console http://{addr}:6669`
 ```bash
 # With pre-compiled binary
 RUSTFLAGS="--cfg tokio_unstable" just run "RUST_LOG=trace" -r --features tokio-console
@@ -89,6 +95,8 @@ just run-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace RUST_BACKTRACE
 
 **No environment variables needed:**
 ```bash
+# Use empty strings for env parameters
+just run-cargo "" "" -r
 # Or omit them entirely
 just run-cargo -r
 ```
