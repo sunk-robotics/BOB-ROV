@@ -59,7 +59,7 @@ just test-cargo 'RUSTFLAGS="--cfg tokio_unstable"' "RUST_LOG=trace" -r --feature
 **Note**: You may need single quotes around build-time variables to preserve the inner double quotes.
 
 ### Common use cases:
-**Logging:**
+**Logging:**\
 More complete information on the `RUST_LOG` env syntax can be found [here](https://docs.rs/tracing-subscriber/0.3.22/tracing_subscriber/filter/struct.EnvFilter.html),
 but the most useful option will likely be the logging level, which can be adjusted, in descending order of verbosity with with `RUST_LOG=trace/debug/info/warn/error`
 ```bash
@@ -70,7 +70,7 @@ just run "RUST_LOG=debug" -r
 just run-cargo "" "RUST_LOG=debug" -r
 ```
 
-**Tokio Console (requires unstable flag + feature):**
+**Tokio Console (requires unstable flag + feature):**\
 Detailed information can be found [here](https://docs.rs/tokio-console/0.1.14/tokio_console/)\
 Generally:
 - Install with `cargo install --locked tokio-console`
