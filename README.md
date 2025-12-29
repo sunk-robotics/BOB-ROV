@@ -17,7 +17,7 @@
 
 # Building, Running, and Testing
 Thanks to the justfile this is rather trivial
-### Options:
+## Options:
 You have the following options for easily building and syncing with the pi:
 - Run `just build` to build.
 - Run `just sync` to build and sync to the pi.
@@ -25,14 +25,14 @@ You have the following options for easily building and syncing with the pi:
 - Run `just run` to build, deploy, and run the binary on the pi. (THIS ONLY COPIES THE BINARY AND DOES NOT PERFORM A SYNC)
 - Run `just run-cargo` to build, sync, and `cargo run` on the pi.
 - Run `just test-cargo` to build, sync and `cargo test` on the pi.
-### Notes:
+## Cargo arguments:
 You can pass any arguments after the commands that would be valid for the corresponding cargo command.
 
 `build`, `sync`, `deploy-binary`, and `run` will take in the arguments to `cargo build`, as that is run as part of their process\
 This is because `run` and `deploy-binary` build the executable on the host machine, and than copy it over for faster build times.
 
 `run-cargo` and `test-cargo` take in the arguments to `cargo run` or `cargo test` respectively.
-### Environment Variables:
+## Environment Variables:
 The `run`, `run-cargo`, and `test-cargo` commands support passing environment variables to the Pi execution environment.
 
 **For `run` (binary execution):**
