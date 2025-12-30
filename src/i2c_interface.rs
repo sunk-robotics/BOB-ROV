@@ -1,71 +1,29 @@
 use crate::config;
+use core::cell::RefCell;
+#[cfg(feature = "aht20")]
+use ahtx0::blocking::ahtx0;
+#[cfg(feature = "aht20")]
+use embedded_hal_bus::i2c::RefCellDevice;
+use rpi_pal::hal;
 use tracing::{info, instrument};
 
 #[instrument]
 pub async fn interface_handler() {
-        use core::cell::RefCell;
-        use embedded_hal_bus::i2c::RefCellDevice;
+    let i2c = config::i2c::new()
+        .unwrap_or_else(|err| panic!("Failed to initalize I2C peripheral! Error: {err}"));
 
-        let i2c = config::i2c::new()
-            .unwrap_or_else(|err| panic!("Failed to initalize I2C peripheral! Error: {err}"));
+    // Small overhead of refcell when not using more than one sensor, doesn't matter in normal operation; changing isn't worth additional code complexity.
+    let i2c_refcell = RefCell::new(i2c);
 
-        // Small overhead of refcell when not using more than one sensor, doesn't matter in normal operation; changing isn't worth additional code complexity.
-        let i2c_refcell = RefCell::new(i2c);
+    #[cfg(any(feature = "imu", feature = "aht20"))]
+    let mut delay = hal::Delay::new();
 
-        #[cfg(any(feature = "imu", feature = "aht20"))]
-        let mut delay = rpi_pal::hal::Delay::new();
+    // Initilize this outside of the block so that its in scope for the rest of the function
+    #[cfg(feature = "imu")]
+    let mut imu = init_imu(&i2c_refcell, &mut delay);
 
-        // Initilize this outside of the block so that they're in scope during the rest of the function
-        #[cfg(feature = "imu")]
-        let mut imu = bno055::Bno055::new(RefCellDevice::new(&i2c_refcell));
-
-        #[cfg(feature = "imu")]
-        {
-            use std::fs;
-            use bno055::{BNO055Calibration, BNO055OperationMode};
-
-            imu.init(&mut delay).unwrap_or_else(|err| panic!("Failed to initiate IMU peripheral! Error: {err}"));
-
-            info!("Existing IMU CALIB: {:#?}", imu.calibration_profile(&mut delay)
-                .unwrap());
-
-            #[cfg(not(feature = "imu-force-recalib"))]
-            if fs::exists(config::imu::CALIB_CACHE_LOCATION)
-                .unwrap_or_else(|err| panic!("Failed to get imu calibration cache file status. Error {err}"))
-            {            
-                let calib_profile = BNO055Calibration::from_buf(fs::read(config::imu::CALIB_CACHE_LOCATION)
-                    .unwrap_or_else(|err| panic!("Failed to read imu calibration cache data! Error: {err}"))
-                    .as_slice()
-                    .try_into()
-                    .expect("Invalid imu calibration cache size!"));
-                
-                imu.set_calibration_profile(calib_profile, &mut delay)
-                    .unwrap_or_else(|err| panic!("Failed to set imu calibration profile! Error: {err}"));
-            } else {
-                calibrate_imu(&mut imu, &mut delay);
-                write_imu_calib(&mut imu, &mut delay);
-            }
-
-            #[cfg(feature = "imu-force-recalib")]
-            {
-                calibrate_imu(&mut imu, &mut delay);
-                write_imu_calib(&mut imu, &mut delay);
-            }
-
-            imu.set_axis_remap(config::imu::get_axis_map().expect("Invalid axis map config!"))
-                .unwrap_or_else(|err| panic!("Failed to set axis remap! Error: {err}"));
-
-            imu.set_mode(BNO055OperationMode::AMG, &mut delay)
-                .unwrap_or_else(|err| panic!("Failed to set imu mode! Error: {err}"));
-
-            imu.set_external_crystal(true, &mut delay)
-                .unwrap_or_else(|err| panic!("Failed to set imu external crystal status! Error: {err}"));
-        }
-
-        // Why the hell did the library designer make this take delay by value rather than mutable reference ;-;
-        #[cfg(feature = "aht20")]
-        let mut aht20 = aht20::Aht20::new(RefCellDevice::new(&i2c_refcell), delay)
-            .unwrap_or_else(|err| panic!("Failed to initalize aht20 peripheral! Error: {:#?}", err));
+    #[cfg(feature = "aht20")]
+    let mut aht20 = ahtx0(RefCellDevice::new(&i2c_refcell));
 
     loop {
         #[cfg(feature = "imu")]
@@ -78,16 +36,60 @@ pub async fn interface_handler() {
 
         #[cfg(feature = "aht20")]
         {
-            if let Ok(data) = aht20.read() { 
-                info!("aht20 humidity data: {}", data.0.rh());
-                info!("aht20 temp data {}", data.1.celsius());
+            if let Ok(data) = aht20.measure(&mut delay) { 
+                info!("AHT20 Data: humidity: {} temperature: {}", data.humidity.as_percent(), data.temperature.as_degrees_celsius());
             }
         }        
     }
 }
 
 #[cfg(feature = "imu")]
-#[inline(always)]
+fn init_imu<'a>(
+    i2c_refcell: &'a RefCell<rpi_pal::i2c::I2c>,
+    delay: &mut hal::Delay
+) -> bno055::Bno055<RefCellDevice<'a, rpi_pal::i2c::I2c>> {
+    use std::fs;
+    use bno055::{BNO055Calibration, BNO055OperationMode};
+
+    let mut imu = bno055::Bno055::new(RefCellDevice::new(i2c_refcell));
+    imu.init(delay).unwrap_or_else(|err| panic!("Failed to initiate IMU peripheral! Error: {err}"));
+
+    #[cfg(not(feature = "imu-force-recalib"))]
+    if fs::exists(config::imu::CALIB_CACHE_LOCATION)
+        .unwrap_or_else(|err| panic!("Failed to get imu calibration cache file status. Error {err}"))
+    {            
+        let calib_profile = BNO055Calibration::from_buf(fs::read(config::imu::CALIB_CACHE_LOCATION)
+            .unwrap_or_else(|err| panic!("Failed to read imu calibration cache data! Error: {err}"))
+            .as_slice()
+            .try_into()
+            .expect("Invalid imu calibration cache size!"));
+        
+        imu.set_calibration_profile(calib_profile, delay)
+            .unwrap_or_else(|err| panic!("Failed to set imu calibration profile! Error: {err}"));
+    } else {
+        calibrate_imu(&mut imu, delay);
+        write_imu_calib(&mut imu, delay);
+    }
+
+    #[cfg(feature = "imu-force-recalib")]
+    {
+        calibrate_imu(&mut imu, delay);
+        write_imu_calib(&mut imu, delay);
+    }
+
+    imu.set_axis_remap(config::imu::get_axis_map().expect("Invalid axis map config!"))
+        .unwrap_or_else(|err| panic!("Failed to set axis remap! Error: {err}"));
+
+    imu.set_mode(BNO055OperationMode::AMG, delay)
+        .unwrap_or_else(|err| panic!("Failed to set imu mode! Error: {err}"));
+
+    imu.set_external_crystal(true, delay)
+        .unwrap_or_else(|err| panic!("Failed to set imu external crystal status! Error: {err}"));
+
+    imu
+}
+
+#[cfg(feature = "imu")]
 fn calibrate_imu(
     imu: &mut bno055::Bno055<embedded_hal_bus::i2c::RefCellDevice<'_, rpi_pal::i2c::I2c>>, 
     delay: &mut rpi_pal::hal::Delay
@@ -117,7 +119,6 @@ fn calibrate_imu(
 }
 
 #[cfg(feature = "imu")]
-#[inline(always)]
 fn write_imu_calib(
     imu: &mut bno055::Bno055<embedded_hal_bus::i2c::RefCellDevice<'_, rpi_pal::i2c::I2c>>, 
     delay: &mut rpi_pal::hal::Delay
