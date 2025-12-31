@@ -18,12 +18,21 @@ deploy-binary *args="": (build args)
 
 # Build, deploy, and run the binary on Pi - usage: just run-with-env "VAR=value" -r
 run env="" *build_args="": (deploy-binary build_args)
-    ssh {{pi_user}}@{{pi_host}} "cd {{pi_path}} && {{env}} ./bob-rov"
+    ssh {{pi_user}}@{{pi_host}} "pkill bob-rov || true && cd {{pi_path}} && {{env}} ./bob-rov"
 
 # Sync and run cargo run on Pi
 run-cargo build_env="" run_env="" *args="": sync 
-    ssh {{pi_user}}@{{pi_host}} 'cd {{pi_path}} && {{build_env}} {{run_env}} {{cargo_path}} run -j $(nproc) {{args}}'
+    ssh {{pi_user}}@{{pi_host}} 'pkill bob-rov || true && cd {{pi_path}} && {{build_env}} {{run_env}} {{cargo_path}} run -j $(nproc) {{args}}'
 
 # Sync and run cargo test on Pi
 test-cargo build_env="" run_env="" *args="": sync
-    ssh {{pi_user}}@{{pi_host}} 'cd {{pi_path}} && {{build_env}} {{run_env}} {{cargo_path}} test -j $(nproc) {{args}}'
+    ssh {{pi_user}}@{{pi_host}} 'pkill bob-rov || true && cd {{pi_path}} && {{build_env}} {{run_env}} {{cargo_path}} test -j $(nproc) {{args}}'
+
+kill-process:
+    ssh {{pi_user}}@{{pi_host}} "pkill bob-rov"
+
+tokio-console:
+    ssh {{pi_user}}@{{pi_host}} "tokio-console"
+
+ssh:
+    ssh {{pi_user}}@{{pi_host}}

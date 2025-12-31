@@ -6,7 +6,6 @@ authors = ["Alachie Yeager"]
 license = "AGPL-3.0-or-later"
 
 [dependencies]
-# this goober didn't publish the version which is updated to embedded-hal 1.0.0 to crates.io
 ahtx0 = { version = "0.1.4", optional = true } 
 bno055 = { version = "0.4.0", features = ["std"], optional = true }
 console-subscriber = { version = "0.5.0", optional = true }
@@ -36,6 +35,6 @@ default = ["aht20", "imu"]
 tokio-console = ["dep:console-subscriber"]
 spi = []
 i2c = ["dep:embedded-hal-bus"]
-imu = ["dep:bno055", "i2c"]
+imu = ["dep:bno055", "tokio/time", "i2c"]
 imu-force-recalib = ["imu"]
 aht20 = ["dep:ahtx0", "i2c"]

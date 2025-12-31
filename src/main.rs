@@ -9,7 +9,7 @@ mod config;
 use tokio::runtime;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt};
+use tracing_subscriber::{EnvFilter, fmt};
 
 fn main() {
     let rt = runtime::Builder::new_multi_thread()
@@ -18,16 +18,25 @@ fn main() {
         .build()
         .unwrap_or_else(|err| panic!("Failed to create tokio lifetime! Error: {err}"));
 
+    
+    let filter = EnvFilter::from_default_env();
+
+    #[cfg(feature = "tokio-console")]
+    // Ensure that the console can see the tasks
+    let filter = filter
+        .add_directive("tokio::task=trace".parse().expect("Invalid filter directive!"))
+        .add_directive("runtime=trace".parse().expect("Invalid filter directive!"));
+
     let subscriber = tracing_subscriber::registry()
         .with(fmt::layer())
-        .with(LevelFilter::INFO)
-        .with(EnvFilter::from_default_env());
+        .with(filter);
+
+    #[cfg(not(feature = "tokio-console"))]
+    subscriber.init();
 
     #[cfg(feature = "tokio-console")]
     subscriber.with(console_subscriber::spawn()).init();
 
-    #[cfg(not(feature = "tokio-console"))]
-    subscriber.init();
 
     rt.block_on(async move {
         #[cfg(feature = "spi")]

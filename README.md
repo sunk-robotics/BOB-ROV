@@ -73,9 +73,10 @@ just run-cargo "" "RUST_LOG=debug" -r
 **Tokio Console (requires unstable flag + feature):**\
 Detailed information can be found [here](https://docs.rs/tokio-console/0.1.14/tokio_console/)\
 Generally:
-- Install with `cargo install --locked tokio-console`
-- Run one of the below command to run with console output
-- run `tokio-console http://{addr}:6669`
+- SSH into the rp5
+- Install with `cargo install --locked tokio-console` (this will take a while)
+- On the dev machine run one of the below commands to start with console output
+- run `tokio-console` in the ssh instance
 ```bash
 # With pre-compiled binary
 RUSTFLAGS="--cfg tokio_unstable" just run "RUST_LOG=trace" -r --features tokio-console
