@@ -1,6 +1,10 @@
 #pragma once
 
+#include <expected>
 #include <memory>
+#include <string>
+#include <system_error>
+#include <type_traits>
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
@@ -28,7 +32,7 @@ public:
     case Bno055ErrorCode::set_power_mode_failed: return "Failed to set Bno055 power mode!";
     case Bno055ErrorCode::set_op_mode_failed: return "Failed to set Bno055 operation mode!";
     case Bno055ErrorCode::set_gyro_units_failed: return "Failed to set Bno055 gyro units to rad/s!";
-    default: return "Unknown Bno055 error";
+    default: return "Unknown Bno055 error!";
     }
   }
 };

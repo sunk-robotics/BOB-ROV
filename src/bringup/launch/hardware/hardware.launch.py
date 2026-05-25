@@ -5,6 +5,13 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.substitutions import FindPackageShare
 
+def hardware_launch(filename, args={}):
+    return IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([FindPackageShare("bringup"), "launch", "hardware", filename])
+        ]),
+        launch_arguments=args.items()
+    )
 
 def generate_launch_description():
     container = ComposableNodeContainer(
@@ -16,16 +23,8 @@ def generate_launch_description():
         output='screen',
     )
 
-    imu_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("rov_bringup"),
-                "launch",
-                "hardware",
-                "imu.launch.py",
-            ])
-        ]),
-        launch_arguments={'container': 'rov_container'}.items()
-    )
-
-    return LaunchDescription([container, imu_launch])
+    return LaunchDescription([
+        container, 
+        hardware_launch("imu.launch.py", {'container': 'rov_container'}),
+        hardware_launch("temp_humid.launch.py", {'container': 'rov_container'})
+    ])

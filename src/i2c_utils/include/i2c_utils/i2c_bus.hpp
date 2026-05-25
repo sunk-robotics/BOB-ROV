@@ -32,6 +32,7 @@ public:
   I2cBus &operator=(I2cBus &&) = delete;
 
   enum class BusNum : uint8_t { bus_0 = 0, bus_1 = 1 };
+  static constexpr uint8_t MaxBusNum = 1;
 
   [[nodiscard]] static std::expected<std::shared_ptr<I2cBus>, std::error_code>
   get_instance(BusNum bus_num) noexcept

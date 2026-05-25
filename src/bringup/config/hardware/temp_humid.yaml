@@ -1,0 +1,9 @@
+sensors:
+  temp_humid_node:
+    ros__parameters:
+      pub_rate_hz: 10
+
+      i2c_bus: 1
+
+      measurement_timeout_us: 100
+      measurement_poll_period_us: 5
