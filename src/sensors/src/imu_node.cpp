@@ -104,6 +104,7 @@ public:
     if (enable_orientation_) {
       op_mode = BNO055_OPERATION_MODE_NDOF;
     } else {
+      // index into constant array to retrieve correct mode value for enabled sensors
       uint8_t idx = (enable_accel_ << 2) | (enable_mag_ << 1) | enable_gyro_;
       op_mode = kSensorModeTable[idx];
     }
@@ -171,6 +172,7 @@ public:
           sensor_msgs::msg::MagneticField mag_msg;
           mag_msg.header.stamp = this->now();
           mag_msg.header.frame_id = "imu_link";
+          // convert to T from uT
           mag_msg.magnetic_field.x = static_cast<double>(mag_vals_.x) * 1e-6;
           mag_msg.magnetic_field.y = static_cast<double>(mag_vals_.y) * 1e-6;
           mag_msg.magnetic_field.z = static_cast<double>(mag_vals_.z) * 1e-6;

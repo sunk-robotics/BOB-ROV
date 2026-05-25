@@ -62,6 +62,7 @@ public:
   {
     auto driver = std::unique_ptr<Bno055Driver>(new Bno055Driver(std::move(bus)));
 
+    // write up library functions
     driver->dev_.dev_addr = use_alternate_addr ? BNO055_I2C_ADDR2 : BNO055_I2C_ADDR1;
     driver->dev_.bus_write = &Bno055Driver::bus_write_callback;
     driver->dev_.bus_read = &Bno055Driver::bus_read_callback;

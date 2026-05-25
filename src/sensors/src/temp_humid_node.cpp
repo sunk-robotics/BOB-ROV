@@ -54,6 +54,7 @@ public:
 
     const auto bus_num = static_cast<I2cBus::BusNum>(this->get_parameter("i2c_bus").as_int());
 
+    // limit maximum timeout to ensure that it doesn't exceed the update rate
     const auto max_timeout = 1'000'000 / pub_rate_hz;
     const auto measure_timeout = this->get_parameter("measurement_timeout_us").as_int();
     if (measure_timeout > max_timeout) {
@@ -65,6 +66,8 @@ public:
       throw std::invalid_argument(msg);
     }
 
+    // limit poll period so that at least one poll happens after initial delay period of 80ms
+    // mandated by the datasheet.
     const auto measure_poll_period = this->get_parameter("measurement_poll_period_us").as_int();
     if (measure_poll_period > measure_timeout - 80) {
       auto msg = std::format(

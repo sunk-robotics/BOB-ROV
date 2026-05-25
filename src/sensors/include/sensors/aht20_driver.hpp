@@ -80,7 +80,7 @@ public:
     clock.sleep_until(rclcpp::Time(40'000'000LL, RCL_STEADY_TIME));
 
     uint8_t status;
-    auto result = driver->bus_->transfer(kI2cAddr, std::span{&kStatusCommand, 1}, {&status, 1});
+    auto result = driver->bus_->transfer(kI2cAddr, {&kStatusCommand, 1}, {&status, 1});
     if (!result)
       return std::unexpected(result.error());
 
@@ -143,6 +143,7 @@ public:
     if (crc != measurement_data[6])
       return std::unexpected(make_error_code(Aht20ErrorCode::crc_mismatch));
 
+    // promote to uint32_t in one go to avoid a billion static casts
     const uint32_t b1 = measurement_data[1], b2 = measurement_data[2], b3 = measurement_data[3],
                    b4 = measurement_data[4], b5 = measurement_data[5];
     return RawAht20Measurement{
@@ -157,6 +158,7 @@ public:
       return std::unexpected(result.error());
 
     return Aht20Measurement{
+        // see datasheet
         .temperature = result.value().temperature / 1048576.0 * 200.0 - 50.0,
         .relative_humidity = result.value().relative_humidity / 1048576.0};
   }
