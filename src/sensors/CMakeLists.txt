@@ -6,10 +6,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
@@ -22,35 +18,44 @@ find_package(sensor_msgs REQUIRED)
 find_package(i2c_utils REQUIRED)
 
 add_library(imu_node SHARED src/imu_node.cpp)
-add_library(BNO055_SensorAPI STATIC
-  vendor/BNO055_SensorAPI/bno055.c
-)
+add_library(temp_humid_node SHARED src/temp_humid_node.cpp)
+add_library(BNO055_SensorAPI STATIC vendor/BNO055_SensorAPI/bno055.c)
 set_target_properties(BNO055_SensorAPI PROPERTIES
   C_STANDARD 99
   C_STANDARD_REQUIRED ON
 )
-target_include_directories(BNO055_SensorAPI PUBLIC
-  vendor/BNO055_SensorAPI
-)
 
-target_include_directories(imu_node PUBLIC
-  include
-)
+target_include_directories(BNO055_SensorAPI PUBLIC vendor/BNO055_SensorAPI)
+
+target_include_directories(imu_node PUBLIC include)
+target_include_directories(temp_humid_node PUBLIC include)
 
 target_link_libraries(imu_node BNO055_SensorAPI i2c_utils::i2c_utils)
+target_link_libraries(temp_humid_node i2c_utils::i2c_utils)
+
+ament_target_dependencies(imu_node rclcpp rclcpp_components sensor_msgs)
+ament_target_dependencies(temp_humid_node rclcpp rclcpp_components sensor_msgs)
 
 rclcpp_components_register_node(
   imu_node
-  PLUGIN "ImuNode"
+  PLUGIN "sensors::ImuNode"
   EXECUTABLE imu_node_exe
 )
-
-ament_target_dependencies(imu_node rclcpp rclcpp_components sensor_msgs)
-
+rclcpp_components_register_node(
+  temp_humid_node
+  PLUGIN "sensors::TempHumidSensorNode"
+  EXECUTABLE temp_humid_exe
+)
 
 install(TARGETS
   imu_node
+  temp_humid_node
+  DESTINATION lib/
+)
+
+install(TARGETS
   imu_node_exe
+  temp_humid_exe
   DESTINATION lib/${PROJECT_NAME}
 )
 

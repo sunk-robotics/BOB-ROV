@@ -36,7 +36,6 @@ public:
     bus_desc.integer_range = {bus_range};
     this->declare_parameter("i2c_bus", 1, bus_desc);
 
-    this->declare_parameter("i2c_bus", 1);
     this->declare_parameter("use_alternate_i2c_addr", false);
 
     this->declare_parameter("enable_orientation", false);
@@ -70,8 +69,12 @@ public:
     const double gyro_var = this->get_parameter("gyro_variance").as_double();
     const double mag_var = this->get_parameter("mag_variance").as_double();
 
+    RCLCPP_INFO(get_logger(), "Loaded imu_node params");
+
     imu_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("imu/data_raw", 10);
     mag_publisher_ = this->create_publisher<sensor_msgs::msg::MagneticField>("imu/mag", 10);
+
+    RCLCPP_INFO(get_logger(), "Created imu_node_publishers");
 
     // clang-format off
     accel_covariance_ = {
@@ -117,6 +120,8 @@ public:
       throw std::runtime_error(msg);
     }
     sensor_ = std::move(sensor_res.value());
+
+    RCLCPP_INFO(get_logger(), "Initialized imu sensor!");
 
     auto timer_callback = [this]() -> void {
       if (imu_msg_enable_) {
@@ -184,6 +189,8 @@ public:
 
     auto period = std::chrono::duration<double>(1.0 / pub_rate_hz);
     timer_ = this->create_wall_timer(period, timer_callback);
+
+    RCLCPP_INFO(get_logger(), "Started IMU sensor node!");
   }
 
 private:

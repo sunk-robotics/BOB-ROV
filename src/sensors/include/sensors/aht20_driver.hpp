@@ -17,8 +17,8 @@ enum class Aht20ErrorCode : uint8_t {
 
 class Aht20ErrorCategory : public std::error_category {
 public:
-  const char *name() const noexcept override { return "Aht20"; }
-  std::string message(int ev) const noexcept override
+  [[nodiscard]] const char *name() const noexcept override { return "Aht20"; }
+  [[nodiscard]] std::string message(int ev) const noexcept override
   {
     switch (static_cast<Aht20ErrorCode>(ev)) {
     case Aht20ErrorCode::measurement_timed_out:

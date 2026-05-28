@@ -5,14 +5,17 @@
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="rtificr@gmail.com">alachie</maintainer>
-  <license>GPL-3.0-or-later</license>
+  <license>GPL-3.0-only</license>
+
   <buildtool_depend>ament_cmake</buildtool_depend>
+
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
   <depend>rclcpp_components</depend>
-  <depend>i2c_utils</depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>

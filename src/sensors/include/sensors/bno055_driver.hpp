@@ -24,8 +24,8 @@ enum class Bno055ErrorCode : uint8_t {
 
 class Bno055ErrorCategory : public std::error_category {
 public:
-  const char *name() const noexcept override { return "Bno055"; }
-  std::string message(int ev) const noexcept override
+  [[nodiscard]] const char *name() const noexcept override { return "Bno055"; }
+  [[nodiscard]] std::string message(int ev) const noexcept override
   {
     switch (static_cast<Bno055ErrorCode>(ev)) {
     case Bno055ErrorCode::init_failed: return "Failed to init Bno055 device!";
