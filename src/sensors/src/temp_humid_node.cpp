@@ -13,7 +13,7 @@ namespace sensors {
 
 class TempHumidSensorNode : public rclcpp::Node {
 public:
-  TempHumidSensorNode(const rclcpp::NodeOptions &options) : Node("temp_humid_sensor_node", options)
+  TempHumidSensorNode(const rclcpp::NodeOptions &options) : Node("temp_humid_node", options)
   {
     rcl_interfaces::msg::ParameterDescriptor pub_rate_desc;
     rcl_interfaces::msg::IntegerRange pub_rate_range;
@@ -50,6 +50,11 @@ public:
     humid_var_desc.floating_point_range = {humid_var_range};
     this->declare_parameter("humid_variance", kDefaultHumidVar, humid_var_desc);
 
+    this->declare_parameter("temperature_topic", "temphumid/temp");
+    this->declare_parameter("humidity_topic", "temphumid/humid");
+
+    this->declare_parameter("link", "temp_humid_sensor_link");
+
     const auto pub_rate_hz = this->get_parameter("pub_rate_hz").as_int();
 
     const auto bus_num = static_cast<I2cBus::BusNum>(this->get_parameter("i2c_bus").as_int());
@@ -81,9 +86,15 @@ public:
     temp_var_ = this->get_parameter("temp_variance").as_double();
     humid_var_ = this->get_parameter("humid_variance").as_double();
 
-    temp_publisher_ = this->create_publisher<sensor_msgs::msg::Temperature>("temphumid/temp", 10);
-    humid_publisher_ =
-        this->create_publisher<sensor_msgs::msg::RelativeHumidity>("temphumid/humid", 10);
+    const auto temp_topic = this->get_parameter("temperature_topic").as_string();
+    const auto humid_topic = this->get_parameter("humidity_topic").as_string();
+
+    link_ = this->get_parameter("link").as_string();
+    RCLCPP_INFO(get_logger(), "Loaded temp_humid_node params");
+
+    temp_publisher_ = this->create_publisher<sensor_msgs::msg::Temperature>(temp_topic, 10);
+    humid_publisher_ = this->create_publisher<sensor_msgs::msg::RelativeHumidity>(humid_topic, 10);
+    RCLCPP_INFO(get_logger(), "Created temp_humid_node publishers");
 
     auto bus = I2cBus::get_instance(bus_num);
     if (!bus) {
@@ -101,41 +112,45 @@ public:
       throw std::runtime_error(msg);
     }
     sensor_ = std::move(sensor_res.value());
-
-    auto timer_callback = [this]() -> void {
-      auto result = sensor_->read();
-      if (!result) {
-        RCLCPP_ERROR(
-            get_logger(),
-            "Error encountered while reading temperature and humidity sensor! Error: %s",
-            result.error().message().c_str());
-        return;
-      }
-
-      sensor_msgs::msg::Temperature temp_msg;
-      temp_msg.header.stamp = this->now();
-      temp_msg.header.frame_id = "temp_humid_sensor_link";
-      temp_msg.variance = kDefaultTempVar;
-      temp_msg.temperature = result.value().temperature;
-
-      this->temp_publisher_->publish(temp_msg);
-
-      sensor_msgs::msg::RelativeHumidity humid_msg;
-      humid_msg.header.stamp = this->now();
-      humid_msg.header.frame_id = "temp_humid_sensor_link";
-      humid_msg.variance = kDefaultHumidVar;
-      humid_msg.relative_humidity = result.value().relative_humidity;
-
-      this->humid_publisher_->publish(humid_msg);
-    };
+    RCLCPP_INFO(get_logger(), "Initialized temperature/humidity sensor!");
 
     auto period = std::chrono::duration<double>(1.0 / pub_rate_hz);
-    timer_ = this->create_wall_timer(period, timer_callback);
+    timer_ = this->create_wall_timer(period, [this]() { timer_callback(); });
+    RCLCPP_INFO(get_logger(), "Started temperature/humidity sensor node!");
   }
 
 private:
+  void timer_callback()
+  {
+    auto result = sensor_->read();
+    if (!result) {
+      RCLCPP_ERROR(
+          get_logger(),
+          "Error encountered while reading temperature and humidity sensor! Error: %s",
+          result.error().message().c_str());
+      return;
+    }
+
+    sensor_msgs::msg::Temperature temp_msg;
+    temp_msg.header.stamp = this->now();
+    temp_msg.header.frame_id = link_;
+    temp_msg.variance = temp_var_;
+    temp_msg.temperature = result.value().temperature;
+
+    this->temp_publisher_->publish(temp_msg);
+
+    sensor_msgs::msg::RelativeHumidity humid_msg;
+    humid_msg.header.stamp = this->now();
+    humid_msg.header.frame_id = link_;
+    humid_msg.variance = humid_var_;
+    humid_msg.relative_humidity = result.value().relative_humidity;
+
+    this->humid_publisher_->publish(humid_msg);
+  }
+
   double temp_var_;
   double humid_var_;
+  std::string link_;
 
   static constexpr uint16_t kDefaultPubRateHz = 10;
   static constexpr uint16_t kDefaultMeasurementTimeout = 100;

@@ -10,3 +10,8 @@ sensors:
       enable_accel: true
       enable_gyro: true
       enable_mag: true
+
+      imu_data_topic: imu/imu
+      mag_data_topic: imu/mag
+
+      link: temp_humid_sensor_link

@@ -7,3 +7,6 @@ sensors:
 
       measurement_timeout_us: 100
       measurement_poll_period_us: 5
+
+      temperature_topic: temphumid/temp
+      humidity_topic: temphumid/humid

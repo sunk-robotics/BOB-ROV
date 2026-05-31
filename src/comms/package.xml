@@ -13,6 +13,9 @@
   <test_depend>ament_lint_common</test_depend>
 
   <depend>libdatachannel_vendor</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>rclcpp_components</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

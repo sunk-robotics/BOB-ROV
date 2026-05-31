@@ -28,11 +28,12 @@ public:
   [[nodiscard]] std::string message(int ev) const noexcept override
   {
     switch (static_cast<Bno055ErrorCode>(ev)) {
-    case Bno055ErrorCode::init_failed: return "Failed to init Bno055 device!";
-    case Bno055ErrorCode::set_power_mode_failed: return "Failed to set Bno055 power mode!";
-    case Bno055ErrorCode::set_op_mode_failed: return "Failed to set Bno055 operation mode!";
-    case Bno055ErrorCode::set_gyro_units_failed: return "Failed to set Bno055 gyro units to rad/s!";
-    default: return "Unknown Bno055 error!";
+      case Bno055ErrorCode::init_failed: return "Failed to init Bno055 device!";
+      case Bno055ErrorCode::set_power_mode_failed: return "Failed to set Bno055 power mode!";
+      case Bno055ErrorCode::set_op_mode_failed: return "Failed to set Bno055 operation mode!";
+      case Bno055ErrorCode::set_gyro_units_failed:
+        return "Failed to set Bno055 gyro units to rad/s!";
+      default: return "Unknown Bno055 error!";
     }
   }
 };
@@ -70,16 +71,16 @@ public:
     driver->dev_.userdata = driver->bus_.get();
 
     if (s8 rc = bno055_init(&driver->dev_); rc == BNO055_ERROR) {
-      return std::unexpected(make_error_code(Bno055ErrorCode::init_failed));
+      return std::unexpected(Bno055ErrorCode::init_failed);
     }
     if (s8 rc = bno055_set_power_mode(BNO055_POWER_MODE_NORMAL); rc == BNO055_ERROR) {
-      return std::unexpected(make_error_code(Bno055ErrorCode::set_power_mode_failed));
+      return std::unexpected(Bno055ErrorCode::set_power_mode_failed);
     }
     if (s8 rc = bno055_set_operation_mode(op_mode); rc == BNO055_ERROR) {
-      return std::unexpected(make_error_code(Bno055ErrorCode::set_op_mode_failed));
+      return std::unexpected(Bno055ErrorCode::set_op_mode_failed);
     }
     if (s8 rc = bno055_set_gyro_unit(BNO055_GYRO_UNIT_RPS); rc == BNO055_ERROR) {
-      return std::unexpected(make_error_code(Bno055ErrorCode::set_gyro_units_failed));
+      return std::unexpected(Bno055ErrorCode::set_gyro_units_failed);
     }
 
     return driver;

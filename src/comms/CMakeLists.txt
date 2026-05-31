@@ -15,11 +15,13 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(libdatachannel_vendor REQUIRED)
 find_package(LibDataChannel REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 add_library(webrtc_node SHARED src/webrtc_node.cpp)
 
 target_include_directories(webrtc_node PUBLIC include)
-target_include_directories(webrtc_node PRIVATE external/httplib)
+target_include_directories(webrtc_node PRIVATE vendor/httplib)
 target_compile_definitions(webrtc_node PRIVATE
   CPPHTTPLIB_THREAD_POOL_COUNT=1
   CPPHTTPLIB_THREAD_POOL_MAX_COUNT=1
@@ -27,11 +29,17 @@ target_compile_definitions(webrtc_node PRIVATE
 
 target_link_libraries(webrtc_node LibDataChannel::LibDataChannel)
 
-ament_target_dependencies(webrtc_node rclcpp rclcpp_components)
+ament_target_dependencies(
+  webrtc_node
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  sensor_msgs
+)
 
 rclcpp_components_register_node(
   webrtc_node
-  PLUGIN "comms::webrtc_node"
+  PLUGIN "comms::WebRtcNode"
   EXECUTABLE webrtc_node_exe
 )
 

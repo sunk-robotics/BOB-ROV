@@ -21,15 +21,15 @@ public:
   [[nodiscard]] std::string message(int ev) const noexcept override
   {
     switch (static_cast<Aht20ErrorCode>(ev)) {
-    case Aht20ErrorCode::measurement_timed_out:
-      return "Measurement did not return successfully within specified timeout period!";
-    case Aht20ErrorCode::crc_mismatch: return "Recieved measurement data failed crc check!";
-    case Aht20ErrorCode::invalid_measure_timeout:
-      return "Measuremnet timeout values must be at least 80ms. Provided value was below this "
-             "threshold.";
-    case Aht20ErrorCode::invalid_measure_poll_period:
-      return "Measurement poll period must be greater than 0!";
-    default: return "Unknown Aht20 error!";
+      case Aht20ErrorCode::measurement_timed_out:
+        return "Measurement did not return successfully within specified timeout period!";
+      case Aht20ErrorCode::crc_mismatch: return "Recieved measurement data failed crc check!";
+      case Aht20ErrorCode::invalid_measure_timeout:
+        return "Measuremnet timeout values must be at least 80ms. Provided value was below this "
+               "threshold.";
+      case Aht20ErrorCode::invalid_measure_poll_period:
+        return "Measurement poll period must be greater than 0!";
+      default: return "Unknown Aht20 error!";
     }
   }
 };
@@ -68,9 +68,9 @@ public:
       uint8_t measure_poll_period_ms) noexcept
   {
     if (measure_timeout_ms < 80)
-      return std::unexpected(make_error_code(Aht20ErrorCode::invalid_measure_timeout));
+      return std::unexpected(Aht20ErrorCode::invalid_measure_timeout);
     if (measure_poll_period_ms == 0)
-      return std::unexpected(make_error_code(Aht20ErrorCode::invalid_measure_poll_period));
+      return std::unexpected(Aht20ErrorCode::invalid_measure_poll_period);
 
     auto driver = std::unique_ptr<Aht20Driver>(
         new Aht20Driver(std::move(bus), measure_timeout_ms, measure_poll_period_ms));
@@ -125,7 +125,7 @@ public:
     }
 
     if (timed_out) {
-      return std::unexpected(make_error_code(Aht20ErrorCode::measurement_timed_out));
+      return std::unexpected(Aht20ErrorCode::measurement_timed_out);
     }
 
     // loop over all bytes before the crc byte

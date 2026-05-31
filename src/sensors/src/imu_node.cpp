@@ -12,8 +12,6 @@
 #include "i2c_utils/i2c_bus.hpp"
 #include "sensors/bno055_driver.hpp"
 
-using namespace std::chrono_literals;
-
 namespace sensors {
 
 class ImuNode : public rclcpp::Node {
@@ -53,6 +51,9 @@ public:
     this->declare_parameter("gyro_variance", kDefaultGyroVar, var_desc);
     this->declare_parameter("mag_variance", kDefaultMagVar, var_desc);
 
+    this->declare_parameter("imu_data_topic", "imu/imu");
+    this->declare_parameter("mag_data_topic", "imu/mag");
+
     const auto pub_rate_hz = this->get_parameter("pub_rate_hz").as_int();
 
     const auto bus_num = static_cast<I2cBus::BusNum>(this->get_parameter("i2c_bus").as_int());
@@ -69,12 +70,13 @@ public:
     const double gyro_var = this->get_parameter("gyro_variance").as_double();
     const double mag_var = this->get_parameter("mag_variance").as_double();
 
+    const auto imu_data_topic = this->get_parameter("imu_data_topic").as_string();
+    const auto mag_data_topic = this->get_parameter("mag_data_topic").as_string();
     RCLCPP_INFO(get_logger(), "Loaded imu_node params");
 
-    imu_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("imu/data_raw", 10);
-    mag_publisher_ = this->create_publisher<sensor_msgs::msg::MagneticField>("imu/mag", 10);
-
-    RCLCPP_INFO(get_logger(), "Created imu_node_publishers");
+    imu_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>(imu_data_topic, 10);
+    mag_publisher_ = this->create_publisher<sensor_msgs::msg::MagneticField>(mag_data_topic, 10);
+    RCLCPP_INFO(get_logger(), "Created imu_node publishers");
 
     // clang-format off
     accel_covariance_ = {
@@ -120,80 +122,78 @@ public:
       throw std::runtime_error(msg);
     }
     sensor_ = std::move(sensor_res.value());
-
-    RCLCPP_INFO(get_logger(), "Initialized imu sensor!");
-
-    auto timer_callback = [this]() -> void {
-      if (imu_msg_enable_) {
-        bool imu_ok = true;
-        sensor_msgs::msg::Imu imu_msg;
-
-        if (enable_orientation_ &&
-            bno055_read_quaternion_wxyz(&orientation_vals_) == BNO055_ERROR) {
-          RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU orientation data!");
-          imu_ok = false;
-        }
-        if (imu_ok && enable_accel_ && bno055_read_accel_xyz(&accel_vals_) == BNO055_ERROR) {
-          RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU accelerometer!");
-          imu_ok = false;
-        }
-        if (imu_ok && enable_gyro_ && bno055_read_gyro_xyz(&gyro_vals_) == BNO055_ERROR) {
-          RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU gyroscope!");
-          imu_ok = false;
-        }
-
-        if (imu_ok) {
-          imu_msg.header.stamp = this->now();
-          imu_msg.header.frame_id = "imu_link";
-
-          if (enable_orientation_) {
-            imu_msg.orientation.x = orientation_vals_.x;
-            imu_msg.orientation.y = orientation_vals_.y;
-            imu_msg.orientation.z = orientation_vals_.z;
-            imu_msg.orientation.w = orientation_vals_.w;
-          } else {
-            imu_msg.orientation_covariance = orientation_unavailable;
-          }
-          if (enable_accel_) {
-            imu_msg.linear_acceleration.x = accel_vals_.x;
-            imu_msg.linear_acceleration.y = accel_vals_.y;
-            imu_msg.linear_acceleration.z = accel_vals_.z;
-          }
-          if (enable_gyro_) {
-            imu_msg.angular_velocity.x = gyro_vals_.x;
-            imu_msg.angular_velocity.y = gyro_vals_.y;
-            imu_msg.angular_velocity.z = gyro_vals_.z;
-          }
-          imu_msg.linear_acceleration_covariance = accel_covariance_;
-          imu_msg.angular_velocity_covariance = gyro_covariance_;
-          this->imu_publisher_->publish(imu_msg);
-        }
-      }
-
-      if (enable_mag_) {
-        if (bno055_read_mag_xyz(&mag_vals_) == BNO055_ERROR) {
-          RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU magnometer!");
-        } else {
-          sensor_msgs::msg::MagneticField mag_msg;
-          mag_msg.header.stamp = this->now();
-          mag_msg.header.frame_id = "imu_link";
-          // convert to T from uT
-          mag_msg.magnetic_field.x = static_cast<double>(mag_vals_.x) * 1e-6;
-          mag_msg.magnetic_field.y = static_cast<double>(mag_vals_.y) * 1e-6;
-          mag_msg.magnetic_field.z = static_cast<double>(mag_vals_.z) * 1e-6;
-          mag_msg.magnetic_field_covariance = mag_covariance_;
-          this->mag_publisher_->publish(mag_msg);
-        }
-      }
-    };
+    RCLCPP_INFO(get_logger(), "Initialized IMU sensor!");
 
     auto period = std::chrono::duration<double>(1.0 / pub_rate_hz);
-    timer_ = this->create_wall_timer(period, timer_callback);
-
+    timer_ = this->create_wall_timer(period, [this] { timer_callback(); });
     RCLCPP_INFO(get_logger(), "Started IMU sensor node!");
   }
 
 private:
+  void timer_callback()
+  {
+    if (imu_msg_enable_) {
+      bool imu_ok = true;
+      sensor_msgs::msg::Imu imu_msg;
+
+      if (enable_orientation_ && bno055_read_quaternion_wxyz(&orientation_vals_) == BNO055_ERROR) {
+        RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU orientation data!");
+        imu_ok = false;
+      }
+      if (imu_ok && enable_accel_ && bno055_read_accel_xyz(&accel_vals_) == BNO055_ERROR) {
+        RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU accelerometer!");
+        imu_ok = false;
+      }
+      if (imu_ok && enable_gyro_ && bno055_read_gyro_xyz(&gyro_vals_) == BNO055_ERROR) {
+        RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU gyroscope!");
+        imu_ok = false;
+      }
+
+      if (imu_ok) {
+        imu_msg.header.stamp = this->now();
+        imu_msg.header.frame_id = "imu_link";
+
+        if (enable_orientation_) {
+          imu_msg.orientation.x = orientation_vals_.x;
+          imu_msg.orientation.y = orientation_vals_.y;
+          imu_msg.orientation.z = orientation_vals_.z;
+          imu_msg.orientation.w = orientation_vals_.w;
+        } else {
+          imu_msg.orientation_covariance = orientation_unavailable;
+        }
+        if (enable_accel_) {
+          imu_msg.linear_acceleration.x = accel_vals_.x;
+          imu_msg.linear_acceleration.y = accel_vals_.y;
+          imu_msg.linear_acceleration.z = accel_vals_.z;
+        }
+        if (enable_gyro_) {
+          imu_msg.angular_velocity.x = gyro_vals_.x;
+          imu_msg.angular_velocity.y = gyro_vals_.y;
+          imu_msg.angular_velocity.z = gyro_vals_.z;
+        }
+        imu_msg.linear_acceleration_covariance = accel_covariance_;
+        imu_msg.angular_velocity_covariance = gyro_covariance_;
+        this->imu_publisher_->publish(imu_msg);
+      }
+    }
+
+    if (enable_mag_) {
+      if (bno055_read_mag_xyz(&mag_vals_) == BNO055_ERROR) {
+        RCLCPP_ERROR(get_logger(), "Error encountered while reading IMU magnometer!");
+      } else {
+        sensor_msgs::msg::MagneticField mag_msg;
+        mag_msg.header.stamp = this->now();
+        mag_msg.header.frame_id = "imu_link";
+        // convert to T from uT
+        mag_msg.magnetic_field.x = static_cast<double>(mag_vals_.x) * 1e-6;
+        mag_msg.magnetic_field.y = static_cast<double>(mag_vals_.y) * 1e-6;
+        mag_msg.magnetic_field.z = static_cast<double>(mag_vals_.z) * 1e-6;
+        mag_msg.magnetic_field_covariance = mag_covariance_;
+        this->mag_publisher_->publish(mag_msg);
+      }
+    }
+  }
+
   bool enable_orientation_;
   bool enable_accel_;
   bool enable_gyro_;
