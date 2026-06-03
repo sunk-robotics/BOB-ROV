@@ -90,6 +90,7 @@ private:
   template <typename MsgT, typename SetterT>
   rclcpp::Subscription<MsgT>::SharedPtr make_subscription(const std::string &topic, SetterT setter)
   {
+    // qos = 1 because we are only storing the newest message in telem_frame_ anyway
     return this->create_subscription<MsgT>(topic, 1, [this, setter](MsgT::SharedPtr msg) {
       std::shared_lock lock(telem_mutex_, std::try_to_lock);
       if (!lock.owns_lock())
@@ -113,7 +114,6 @@ private:
   // i hate c++ ;-;
   [[nodiscard]] HttpServer make_http_server()
   {
-    this->declare_parameter("webgui_path", "/webgui");
 
     rcl_interfaces::msg::ParameterDescriptor port_desc;
     rcl_interfaces::msg::IntegerRange port_range;
@@ -131,13 +131,11 @@ private:
     sdp_gathering_timeout_desc.integer_range = {sdp_gathering_timeout_range};
     this->declare_parameter("sdp_gathering_timeout_ms", 5000, sdp_gathering_timeout_desc);
 
-    const auto webgui_path = this->get_parameter("webgui_path").as_string();
     const auto port = this->get_parameter("port").as_int();
     const auto sdp_gathering_timeout = this->get_parameter("sdp_gathering_timeout_ms").as_int();
     RCLCPP_INFO(get_logger(), "Loaded HTTP server params");
 
     return HttpServer(
-        webgui_path,
         port,
         sdp_gathering_timeout,
         [this]() { RCLCPP_INFO(get_logger(), "Connected to WebRTC remote!"); },
@@ -190,9 +188,9 @@ private:
     }
 
     if (ec) {
-      if (ec == HttpServerErrorCode::channel_not_ready)
+      if (ec == HttpServerErrorCode::not_ready)
         RCLCPP_WARN(get_logger(), "%s", ec.message().c_str());
-      else if (ec == HttpServerErrorCode::channel_send_failed) {
+      else if (ec == HttpServerErrorCode::send_failed) {
         RCLCPP_ERROR(get_logger(), "%s", ec.message().c_str());
       }
     }

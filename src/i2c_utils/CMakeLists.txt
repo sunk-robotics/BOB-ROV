@@ -10,11 +10,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 
 add_library(i2c_utils INTERFACE)
 
@@ -32,13 +28,8 @@ if(I2C_UTILS_ROS_LOGGING)
   ament_export_dependencies(rclcpp)
 endif()
 
-install(DIRECTORY include/
-  DESTINATION include
-)
-
-install(TARGETS i2c_utils
-  EXPORT i2c_utils_targets
-)
+install(DIRECTORY include/ DESTINATION include)
+install(TARGETS i2c_utils EXPORT i2c_utils_targets)
 
 ament_export_targets(i2c_utils_targets HAS_LIBRARY_TARGET)
 # ament_export_include_directories(include)

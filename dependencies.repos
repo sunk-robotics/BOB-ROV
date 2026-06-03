@@ -1,0 +1,21 @@
+# run vcs import < dependencies.repos to pull
+repositories:
+  # libcamera and camera ros need to be built together because we need to include the custom raspberrypi patch
+  # this is why we pull from source rather than a vendored package like for libdatachannel_vendor
+  libcamera:
+    type: git
+    url: https://github.com/raspberrypi/libcamera.git
+    version: v0.7.1+rpt20260429
+
+  camera_ros:
+    type: git
+    url: https://github.com/christianrauch/camera_ros.git
+    version: 0.6.0
+
+  # This is a modified version of the original Bosch library to allow me to smuggle in the I2cBus pointer
+  bno055_vendor:
+    type: git
+    url: https://github.com/Rtificer/BNO055_SensorAPI.git
+    version: master
+
+  # libdatachannel does not get one because we are not modifying the package and we don't need to build it from scratch, and the right version might already be on the system

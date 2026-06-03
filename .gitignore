@@ -2,3 +2,6 @@
 build/
 install/
 log/
+src/libcamera/
+src/camera_ros/
+src/bno055_vendor

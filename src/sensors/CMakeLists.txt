@@ -16,21 +16,15 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(i2c_utils REQUIRED)
+find_package(bno055_vendor REQUIRED)
 
 add_library(imu_node SHARED src/imu_node.cpp)
 add_library(temp_humid_node SHARED src/temp_humid_node.cpp)
-add_library(BNO055_SensorAPI STATIC vendor/BNO055_SensorAPI/bno055.c)
-set_target_properties(BNO055_SensorAPI PROPERTIES
-  C_STANDARD 99
-  C_STANDARD_REQUIRED ON
-)
-
-target_include_directories(BNO055_SensorAPI PUBLIC vendor/BNO055_SensorAPI)
 
 target_include_directories(imu_node PUBLIC include)
 target_include_directories(temp_humid_node PUBLIC include)
 
-target_link_libraries(imu_node BNO055_SensorAPI i2c_utils::i2c_utils)
+target_link_libraries(imu_node bno055_vendor::bno055 i2c_utils::i2c_utils)
 target_link_libraries(temp_humid_node i2c_utils::i2c_utils)
 
 ament_target_dependencies(imu_node rclcpp rclcpp_components sensor_msgs)

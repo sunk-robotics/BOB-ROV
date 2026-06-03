@@ -2,10 +2,12 @@
 #include <cstdint>
 #include <functional>
 #include <future>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 
+#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "httplib.h"
 #include "rtc/rtc.hpp"
 
@@ -13,8 +15,8 @@ enum class HttpServerErrorCode : uint8_t {
   peer_connection_failed = 1,
   no_local_description,
   ice_gathering_time_out,
-  channel_not_ready,
-  channel_send_failed,
+  not_ready,
+  send_failed,
   stop_failed_in_deconstructor,
   multiple_complete_ice_gathering
 };
@@ -31,9 +33,9 @@ struct HttpServerErrorCategory : std::error_category {
         return "No local SPD description available despite waiting for ICE!";
       case HttpServerErrorCode::ice_gathering_time_out:
         return "ICE gathering exceeded provided timeout period! Attempting reconnection!";
-      case HttpServerErrorCode::channel_not_ready:
-        return "Channel is null. Must be before construction or mid-reconnect!";
-      case HttpServerErrorCode::channel_send_failed: return "Failed to send message over channel!";
+      case HttpServerErrorCode::not_ready:
+        return "Channel or track is null. Must be before construction or mid-reconnect!";
+      case HttpServerErrorCode::send_failed: return "Failed to send message over channel/track!";
       case HttpServerErrorCode::stop_failed_in_deconstructor:
         return "Failed to close channel in class deconstructor!";
       case HttpServerErrorCode::multiple_complete_ice_gathering:
@@ -79,7 +81,6 @@ public:
   using ErrorCb = std::function<void(std::error_code)>;
 
   HttpServer(
-      const std::string &webgui_path,
       uint16_t port,
       uint16_t sdp_gathering_timeout_ms,
       ConnectedCb on_connected,
@@ -92,6 +93,9 @@ public:
         on_reliable_msg_(on_reliable_msg), on_err_(on_err)
   {
     srv_.new_task_queue = [] { return new httplib::ThreadPool(1); };
+
+    static const std::string webgui_path =
+        ament_index_cpp::get_package_share_directory("comms") + "/webgui";
     srv_.set_mount_point("/", webgui_path);
 
     srv_.Post("/offer", [this](auto &req, auto &res) { handle_post_offer(req, res); });
@@ -134,16 +138,20 @@ public:
 
         close_peer_connection();
         create_peer_connection();
-        on_connected_();
       }
     });
 
+    create_peer_connection();
     return true;
   };
 
+  // once stopped this instance of the server cannot be started again
   [[nodiscard]] bool stop()
   {
-    reconnect_stop_ = true;
+    {
+      std::lock_guard lock(reconnect_mutex_);
+      reconnect_stop_ = true;
+    }
     reconnect_cv_.notify_one();
     reconnect_thread_.join();
 
@@ -163,10 +171,10 @@ public:
     std::lock_guard lock(unreliable_ch_mutex_);
 
     if (!unreliable_ch_)
-      return HttpServerErrorCode::channel_not_ready;
+      return HttpServerErrorCode::not_ready;
 
     if (!unreliable_ch_->send(data, size))
-      return HttpServerErrorCode::channel_send_failed;
+      return HttpServerErrorCode::send_failed;
 
     return {};
   }
@@ -176,10 +184,22 @@ public:
     std::lock_guard lock(reliable_ch_mutex_);
 
     if (!reliable_ch_)
-      return HttpServerErrorCode::channel_not_ready;
+      return HttpServerErrorCode::not_ready;
 
     if (!reliable_ch_->send(data, size))
-      return HttpServerErrorCode::channel_send_failed;
+      return HttpServerErrorCode::send_failed;
+
+    return {};
+  }
+
+  [[nodiscard]] std::error_code send_frame(const std::byte *data, size_t size, rtc::FrameInfo info)
+  {
+    std::lock_guard lock(track_mutex_);
+
+    if (!track_)
+      return HttpServerErrorCode::not_ready;
+
+    track_->sendFrame(data, size, info);
 
     return {};
   }
@@ -225,8 +245,41 @@ private:
         std::lock_guard lock(reliable_ch_mutex_);
         reliable_ch_ = dc;
         reliable_ch_->onMessage(on_reliable_msg_);
+        ;
       }
     });
+
+    auto video = rtc::Description::Video("video", rtc::Description::Direction::SendOnly);
+    video.addH264Codec(96); // first available payload type
+    // SSRC can be any number
+    // Supposed to be random but this is only to avoid collisions
+    // With one stream this is fine and simpler, avoiding other possible mistakes
+    video.addSSRC(1, "front-camera");
+
+    auto track = pc->addTrack(video);
+
+    auto rtpConfig = std::make_shared<rtc::RtpPacketizationConfig>(
+        1, "front-camera", 96, rtc::H264RtpPacketizer::ClockRate);
+
+    // ffmpeg_image_transport uses StartSequence encoding
+    auto packetizer =
+        make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, rtpConfig);
+
+    // add sr reporter to provide wall clock data along with the packet time
+    // should enable a smoother playback on topside for minimal cost
+    auto srReporter = std::make_shared<rtc::RtcpSrReporter>(rtpConfig);
+    packetizer->addToChain(srReporter);
+
+    // allow resending dropped video frames
+    auto nackResponder = std::make_shared<rtc::RtcpNackResponder>();
+    packetizer->addToChain(nackResponder);
+
+    track->setMediaHandler(packetizer);
+
+    {
+      std::lock_guard lock(track_mutex_);
+      track_ = track;
+    }
 
     std::lock_guard lock(pc_mutex_);
     pc_ = pc;
@@ -235,18 +288,20 @@ private:
   void close_peer_connection()
   {
 
-    // lock channels here to prevent send_reliable/unreliable() call while calling pc_close() but
+    // lock here to prevent send call while calling pc_close() but
     // before the pointers are set to null;
     std::lock_guard lock_unreliable(unreliable_ch_mutex_);
     std::lock_guard lock_reliable(reliable_ch_mutex_);
+    std::lock_guard lock_track(track_mutex_);
     {
       std::lock_guard lock(pc_mutex_);
       pc_->close();
     }
 
-    // clear stale channel pointer data in case of reconnection
+    // clear stale pointer data in case of reconnection
     unreliable_ch_ = nullptr;
     reliable_ch_ = nullptr;
+    track_ = nullptr;
   }
 
   struct GatheringState {
@@ -356,6 +411,9 @@ private:
   std::shared_ptr<rtc::DataChannel> unreliable_ch_;
   std::mutex reliable_ch_mutex_;
   std::shared_ptr<rtc::DataChannel> reliable_ch_;
+
+  std::mutex track_mutex_;
+  std::shared_ptr<rtc::Track> track_;
 
   std::mutex pc_mutex_;
   std::shared_ptr<rtc::PeerConnection> pc_;

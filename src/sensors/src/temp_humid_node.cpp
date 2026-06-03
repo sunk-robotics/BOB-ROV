@@ -73,11 +73,11 @@ public:
 
     // limit poll period so that at least one poll happens after initial delay period of 80ms
     // mandated by the datasheet.
-    const auto measure_poll_period = this->get_parameter("measurement_poll_period_us").as_int();
-    if (measure_poll_period > measure_timeout - 80) {
+    const auto measure_wait_period = this->get_parameter("measurement_poll_period_us").as_int();
+    if (measure_wait_period > measure_timeout - 80) {
       auto msg = std::format(
           "measurement_poll_period_us ({}) must be <= measurement_timeout_us - 80 ({})",
-          measure_poll_period,
+          measure_wait_period,
           measure_timeout - 80);
       RCLCPP_FATAL(get_logger(), "%s", msg.c_str());
       throw std::invalid_argument(msg);
@@ -103,7 +103,7 @@ public:
       throw std::runtime_error(msg);
     }
 
-    auto sensor_res = Aht20Driver::create(bus.value(), measure_timeout, measure_poll_period);
+    auto sensor_res = Aht20Driver::create(bus.value(), measure_timeout, measure_wait_period);
     if (!sensor_res) {
       auto msg = std::format(
           "Failed to initialize temperature and humidity sensor! Error: {}",

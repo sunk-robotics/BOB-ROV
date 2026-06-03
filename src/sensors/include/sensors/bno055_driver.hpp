@@ -63,7 +63,7 @@ public:
   {
     auto driver = std::unique_ptr<Bno055Driver>(new Bno055Driver(std::move(bus)));
 
-    // write up library functions
+    // hook up library functions
     driver->dev_.dev_addr = use_alternate_addr ? BNO055_I2C_ADDR2 : BNO055_I2C_ADDR1;
     driver->dev_.bus_write = &Bno055Driver::bus_write_callback;
     driver->dev_.bus_read = &Bno055Driver::bus_read_callback;
@@ -73,12 +73,14 @@ public:
     if (s8 rc = bno055_init(&driver->dev_); rc == BNO055_ERROR) {
       return std::unexpected(Bno055ErrorCode::init_failed);
     }
+    // Normal mode for running sensors at optimal refresh rates
     if (s8 rc = bno055_set_power_mode(BNO055_POWER_MODE_NORMAL); rc == BNO055_ERROR) {
       return std::unexpected(Bno055ErrorCode::set_power_mode_failed);
     }
     if (s8 rc = bno055_set_operation_mode(op_mode); rc == BNO055_ERROR) {
       return std::unexpected(Bno055ErrorCode::set_op_mode_failed);
     }
+    // radians because we're not insane
     if (s8 rc = bno055_set_gyro_unit(BNO055_GYRO_UNIT_RPS); rc == BNO055_ERROR) {
       return std::unexpected(Bno055ErrorCode::set_gyro_units_failed);
     }
@@ -105,6 +107,7 @@ private:
     auto result = bus->write(dev_addr, buf);
     return result ? BNO055_SUCCESS : BNO055_ERROR;
   }
+
   static s8 bus_read_callback(u8 dev_addr, u8 reg_addr, u8 *data, u8 len, void *userdata) noexcept
   {
     auto *bus = static_cast<I2cBus *>(userdata);
@@ -113,6 +116,7 @@ private:
     auto result = bus->transfer(dev_addr, {&reg_addr, 1}, {data, len});
     return result ? BNO055_SUCCESS : BNO055_ERROR;
   }
+
   static void delay_millis_callback(u32 msec) noexcept
   { rclcpp::sleep_for(std::chrono::milliseconds(msec)); }
 };

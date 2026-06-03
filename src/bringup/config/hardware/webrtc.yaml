@@ -3,9 +3,6 @@ comms:
     ros__parameters:
       pub_rate_hz: 50
 
-      webgui_path: /webgui
-      sdp_gathering_timeout_ms: 5000
-
       pose_topic: rov/pose
       twist_topic: rov/twist
       accel_topic: rov/accel

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.11)
 project(comms)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -17,17 +17,29 @@ find_package(libdatachannel_vendor REQUIRED)
 find_package(LibDataChannel REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 
 add_library(webrtc_node SHARED src/webrtc_node.cpp)
 
 target_include_directories(webrtc_node PUBLIC include)
-target_include_directories(webrtc_node PRIVATE vendor/httplib)
+
+include(FetchContent)
+FetchContent_Declare(
+  httplib
+  GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+  GIT_TAG        v0.46.1
+  EXCLUDE_FROM_ALL
+)
+
+# build independently please
+set(HTTPLIB_INSTALL OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(httplib)
 target_compile_definitions(webrtc_node PRIVATE
   CPPHTTPLIB_THREAD_POOL_COUNT=1
   CPPHTTPLIB_THREAD_POOL_MAX_COUNT=1
 )
 
-target_link_libraries(webrtc_node LibDataChannel::LibDataChannel)
+target_link_libraries(webrtc_node LibDataChannel::LibDataChannel httplib::httplib)
 
 ament_target_dependencies(
   webrtc_node
@@ -35,6 +47,7 @@ ament_target_dependencies(
   rclcpp_components
   geometry_msgs
   sensor_msgs
+  ament_index_cpp
 )
 
 rclcpp_components_register_node(
@@ -45,6 +58,7 @@ rclcpp_components_register_node(
 
 install(TARGETS webrtc_node DESTINATION lib/)
 install(TARGETS webrtc_node_exe DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY webgui/ DESTINATION share/${PROJECT_NAME}/webgui)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

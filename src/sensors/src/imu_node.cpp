@@ -53,11 +53,10 @@ public:
 
     this->declare_parameter("imu_data_topic", "imu/imu");
     this->declare_parameter("mag_data_topic", "imu/mag");
+    this->declare_parameter("link", "imu_sensor_link");
 
     const auto pub_rate_hz = this->get_parameter("pub_rate_hz").as_int();
-
     const auto bus_num = static_cast<I2cBus::BusNum>(this->get_parameter("i2c_bus").as_int());
-
     const bool use_alternate_addr = this->get_parameter("use_alternate_i2c_addr").as_bool();
 
     enable_orientation_ = this->get_parameter("enable_orientation").as_bool();
@@ -72,10 +71,11 @@ public:
 
     const auto imu_data_topic = this->get_parameter("imu_data_topic").as_string();
     const auto mag_data_topic = this->get_parameter("mag_data_topic").as_string();
+    link_ = this->get_parameter("link").as_string();
     RCLCPP_INFO(get_logger(), "Loaded imu_node params");
 
-    imu_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>(imu_data_topic, 10);
-    mag_publisher_ = this->create_publisher<sensor_msgs::msg::MagneticField>(mag_data_topic, 10);
+    imu_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>(imu_data_topic, 5);
+    mag_publisher_ = this->create_publisher<sensor_msgs::msg::MagneticField>(mag_data_topic, 5);
     RCLCPP_INFO(get_logger(), "Created imu_node publishers");
 
     // clang-format off
@@ -204,6 +204,8 @@ private:
   std::array<double, 9> accel_covariance_;
   std::array<double, 9> gyro_covariance_;
   std::array<double, 9> mag_covariance_;
+
+  std::string link_;
 
   bno055_accel_t accel_vals_;
   bno055_gyro_t gyro_vals_;

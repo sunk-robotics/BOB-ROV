@@ -12,7 +12,7 @@ enum class Aht20ErrorCode : uint8_t {
   measurement_timed_out = 1,
   crc_mismatch,
   invalid_measure_timeout,
-  invalid_measure_poll_period,
+  invalid_measure_wait_period,
 };
 
 class Aht20ErrorCategory : public std::error_category {
@@ -27,8 +27,8 @@ public:
       case Aht20ErrorCode::invalid_measure_timeout:
         return "Measuremnet timeout values must be at least 80ms. Provided value was below this "
                "threshold.";
-      case Aht20ErrorCode::invalid_measure_poll_period:
-        return "Measurement poll period must be greater than 0!";
+      case Aht20ErrorCode::invalid_measure_wait_period:
+        return "Measurement wait period must be greater than 0!";
       default: return "Unknown Aht20 error!";
     }
   }
@@ -65,15 +65,15 @@ public:
   [[nodiscard]] static std::expected<std::unique_ptr<Aht20Driver>, std::error_code> create(
       std::shared_ptr<I2cBus> bus,
       uint16_t measure_timeout_ms,
-      uint8_t measure_poll_period_ms) noexcept
+      uint8_t measure_wait_period_ms) noexcept
   {
     if (measure_timeout_ms < 80)
       return std::unexpected(Aht20ErrorCode::invalid_measure_timeout);
-    if (measure_poll_period_ms == 0)
-      return std::unexpected(Aht20ErrorCode::invalid_measure_poll_period);
+    if (measure_wait_period_ms == 0)
+      return std::unexpected(Aht20ErrorCode::invalid_measure_wait_period);
 
     auto driver = std::unique_ptr<Aht20Driver>(
-        new Aht20Driver(std::move(bus), measure_timeout_ms, measure_poll_period_ms));
+        new Aht20Driver(std::move(bus), measure_timeout_ms, measure_wait_period_ms));
 
     // sleep until 40ms after power up
     rclcpp::Clock clock(RCL_STEADY_TIME);
@@ -118,8 +118,8 @@ public:
         break;
       }
 
-      rclcpp::sleep_for(std::chrono::milliseconds(measure_poll_period_ms_));
-      elapsed_ms += measure_poll_period_ms_;
+      rclcpp::sleep_for(std::chrono::milliseconds(measure_wait_period_ms_));
+      elapsed_ms += measure_wait_period_ms_;
       if (elapsed_ms >= measure_timeout_ms_)
         break;
     }
@@ -146,6 +146,8 @@ public:
     // promote to uint32_t in one go to avoid a billion static casts
     const uint32_t b1 = measurement_data[1], b2 = measurement_data[2], b3 = measurement_data[3],
                    b4 = measurement_data[4], b5 = measurement_data[5];
+
+    // Temperature and humidity are both 20 bits so we pack it into two uint32_ts
     return RawAht20Measurement{
         .temperature = (b1 << 12) | (b2 << 4) | (b3 >> 4),
         .relative_humidity = ((b3 & 0x0F) << 16) | (b4 << 8) | b5};
@@ -167,9 +169,9 @@ private:
   explicit Aht20Driver(
       std::shared_ptr<I2cBus> bus,
       uint16_t measure_timeout_ms,
-      uint8_t measure_poll_period_ms)
+      uint8_t measure_wait_period_ms)
       : bus_(std::move(bus)), measure_timeout_ms_(measure_timeout_ms),
-        measure_poll_period_ms_(measure_poll_period_ms)
+        measure_wait_period_ms_(measure_wait_period_ms)
   {
   }
 
@@ -184,5 +186,5 @@ private:
 
   std::shared_ptr<I2cBus> bus_;
   uint16_t measure_timeout_ms_;
-  uint8_t measure_poll_period_ms_;
+  uint8_t measure_wait_period_ms_;
 };
