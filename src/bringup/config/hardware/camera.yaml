@@ -1,0 +1,17 @@
+camera_node:
+  ros__parameters:
+    camera: 0
+    role: video
+    # Up to 4056x3040
+    width: 2560
+    height: 1440
+    format: YUYV # compatible format for use with h264_v4l2m2m encoder (RP5 hardware encoder)
+    frame_id: front_camera
+    use_node_time: false
+    FrameDurationLimits: [19989, 33333] # 30-50fps
+
+    image_raw.ffmpeg.encoder: h264_v4l2m2m
+    image_raw.ffmpeg.bit_rate: 10000000
+    image_raw.ffmpeg.gop_size: 40 # one I frame every 40 frames
+    image_raw.ffmpeg.qmax: 10
+    image_raw.ffmpeg.encoder_av_options: "num_output_buffers:32,num_capture_buffers:16"

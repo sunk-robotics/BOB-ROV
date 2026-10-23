@@ -15,7 +15,6 @@
 #include "spi_err.hpp"
 
 #ifdef SPI_UTILS_ROS_LOGGING
-
 #  include <rclcpp/logging.hpp>
 #  define SPI_BUS_LOG_ERROR(fmt, ...) RCLCPP_ERROR(rclcpp::get_logger("SpiBus"), fmt, ##__VA_ARGS__)
 #else
@@ -31,14 +30,16 @@ public:
   SpiBus &operator=(const SpiBus &) = delete;
   SpiBus &operator=(SpiBus &&) = delete;
 
-  enum class Bus { Spi0, Spi1 };
+  enum class BusNum { spi_0, spi_1 };
+  static constexpr uint8_t kMaxBusNum = 1;
+  static constexpr uint8_t kMaxCsNum = 2;
 
   [[nodiscard]] static std::expected<std::shared_ptr<SpiBus>, std::error_code>
-  get_instance(Bus bus, uint8_t cs) noexcept
+  get_instance(BusNum bus, uint8_t cs) noexcept
   {
     static std::mutex registry_mutex;
-    static std::map<std::pair<Bus, uint8_t>, std::weak_ptr<SpiBus>> cs_registry;
-    static std::map<Bus, std::shared_ptr<std::mutex>> bus_mutexes;
+    static std::map<std::pair<BusNum, uint8_t>, std::weak_ptr<SpiBus>> cs_registry;
+    static std::map<BusNum, std::shared_ptr<std::mutex>> bus_mutexes;
 
     std::lock_guard lock(registry_mutex);
 
@@ -124,6 +125,7 @@ public:
   [[nodiscard]] std::expected<void, std::error_code>
   configure(uint8_t mode_flags, uint8_t bits, uint32_t speed) noexcept
   {
+    std::lock_guard lock(*bus_mutex_);
     if (ioctl(fd_, SPI_IOC_WR_MODE, &mode_flags) < 0) {
       return std::unexpected(std::error_code(errno, std::system_category()));
     }
@@ -136,17 +138,28 @@ public:
     return {};
   }
 
-  [[nodiscard]] std::expected<void, std::error_code> close() noexcept
+  static std::expected<const char *, std::error_code> get_path(BusNum bus, uint8_t cs) noexcept
   {
-    if (fd_ < 0)
-      return {};
+    static constexpr std::array<const char *, 2> spi0_paths{"/dev/spidev0.0", "/dev/spidev0.1"};
+    static constexpr std::array<const char *, 3> spi1_paths{
+        "/dev/spidev1.0", "/dev/spidev1.1", "/dev/spidev1.2"};
 
-    if (::close(fd_) < 0) {
-      return std::unexpected(std::error_code(errno, std::system_category()));
+    switch (bus) {
+      case BusNum::spi_0:
+        if (cs < spi0_paths.size()) {
+          return spi0_paths[cs];
+        } else {
+          return std::unexpected(make_error_code(SpiErrorCode::invalid_cs));
+        }
+      case BusNum::spi_1:
+        if (cs < spi1_paths.size()) {
+          return spi1_paths[cs];
+        } else {
+          return std::unexpected(make_error_code(SpiErrorCode::invalid_cs));
+        }
     }
-    fd_ = -1;
-    return {};
-  }
+    return std::unexpected(make_error_code(SpiErrorCode::invalid_bus));
+  };
 
   ~SpiBus()
   {
@@ -159,29 +172,6 @@ public:
   }
 
 private:
-  static std::expected<const char *, std::error_code> get_path(Bus bus, uint8_t cs) noexcept
-  {
-    static constexpr std::array<const char *, 2> spi0_paths{"/dev/spidev0.0", "/dev/spidev0.1"};
-    static constexpr std::array<const char *, 3> spi1_paths{
-        "/dev/spidev1.0", "/dev/spidev1.1", "/dev/spidev1.2"};
-
-    switch (bus) {
-    case Bus::Spi0:
-      if (cs < spi0_paths.size()) {
-        return spi0_paths[cs];
-      } else {
-        return std::unexpected(make_error_code(SpiErrorCode::invalid_cs));
-      }
-    case Bus::Spi1:
-      if (cs < spi1_paths.size()) {
-        return spi1_paths[cs];
-      } else {
-        return std::unexpected(make_error_code(SpiErrorCode::invalid_cs));
-      }
-    }
-    return std::unexpected(make_error_code(SpiErrorCode::invalid_bus));
-  };
-
   explicit SpiBus(int fd, std::shared_ptr<std::mutex> bus_mutex)
       : fd_(fd), bus_mutex_(bus_mutex) {};
   int fd_ = -1;

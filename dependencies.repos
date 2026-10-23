@@ -4,8 +4,8 @@ repositories:
   # this is why we pull from source rather than a vendored package like for libdatachannel_vendor
   libcamera:
     type: git
-    url: https://github.com/raspberrypi/libcamera.git
-    version: v0.7.1+rpt20260429
+    url: https://github.com/ArduCAM/libcamera.git
+    version: arducam_v0.5.1+20250708 
 
   camera_ros:
     type: git
@@ -16,6 +16,7 @@ repositories:
   bno055_vendor:
     type: git
     url: https://github.com/Rtificer/BNO055_SensorAPI.git
+    # we control this repo so don't bother pinning
     version: master
 
   # libdatachannel does not get one because we are not modifying the package and we don't need to build it from scratch, and the right version might already be on the system

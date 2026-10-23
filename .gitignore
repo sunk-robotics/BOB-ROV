@@ -5,3 +5,6 @@ log/
 src/libcamera/
 src/camera_ros/
 src/bno055_vendor
+docs_build/
+docs_output/
+cross_reference/

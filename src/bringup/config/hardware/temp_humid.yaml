@@ -1,3 +1,7 @@
+##
+# @file temp_humid.yaml
+# Configuration parameters for the @ref TempHumidSensorNode.
+
 sensors:
   temp_humid_node:
     ros__parameters:

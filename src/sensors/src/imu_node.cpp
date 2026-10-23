@@ -1,8 +1,6 @@
-#include <chrono>
 #include <format>
 #include <stdexcept>
 #include <string>
-#include <utility>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
@@ -29,10 +27,10 @@ public:
     rcl_interfaces::msg::ParameterDescriptor bus_desc;
     rcl_interfaces::msg::IntegerRange bus_range;
     bus_range.from_value = 0;
-    bus_range.to_value = I2cBus::MaxBusNum;
+    bus_range.to_value = I2cBus::kMaxBusNum;
     bus_range.step = 1;
     bus_desc.integer_range = {bus_range};
-    this->declare_parameter("i2c_bus", 1, bus_desc);
+    this->declare_parameter("i2c_bus", kDefualtI2cBus, bus_desc);
 
     this->declare_parameter("use_alternate_i2c_addr", false);
 
@@ -51,9 +49,9 @@ public:
     this->declare_parameter("gyro_variance", kDefaultGyroVar, var_desc);
     this->declare_parameter("mag_variance", kDefaultMagVar, var_desc);
 
-    this->declare_parameter("imu_data_topic", "imu/imu");
-    this->declare_parameter("mag_data_topic", "imu/mag");
-    this->declare_parameter("link", "imu_sensor_link");
+    this->declare_parameter("imu_data_topic", kDefaultImuTopic);
+    this->declare_parameter("mag_data_topic", kDefaultMagTopic);
+    this->declare_parameter("link", kDefaultImuTopic);
 
     const auto pub_rate_hz = this->get_parameter("pub_rate_hz").as_int();
     const auto bus_num = static_cast<I2cBus::BusNum>(this->get_parameter("i2c_bus").as_int());
@@ -227,6 +225,11 @@ private:
       kGyroNoiseDensity * kGyroNoiseDensity * kDefaultPubRateHz;
 
   static constexpr double kDefaultMagVar = 9e-14; // resolution ^2
+
+  static constexpr uint8_t kDefualtI2cBus = 1;
+  static constexpr char kDefaultImuTopic[] = "imu/imu";
+  static constexpr char kDefaultMagTopic[] = "imu/mag";
+  static constexpr char kDefaultLink[] = "imu_sensor_link";
 
   // clang-format off
   static constexpr std::array<double, 9> orientation_unavailable = {

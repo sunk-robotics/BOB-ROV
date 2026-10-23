@@ -1,0 +1,7 @@
+INPUT                  = include src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.cpp *.hpp *.h
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+GENERATE_HTML = YES

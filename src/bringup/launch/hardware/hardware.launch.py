@@ -27,5 +27,6 @@ def generate_launch_description():
         container, 
         hardware_launch("imu.launch.py", {'container': 'rov_container'}),
         hardware_launch("temp_humid.launch.py", {'container': 'rov_container'}),
-        hardware_launch("webrtc.launch.py", {'container': 'rov_container'})
+        hardware_launch("webrtc.launch.py", {'container': 'rov_container'}),
+        hardware_launch("camera.launch.py", {'container': 'rov_container'})
     ])
