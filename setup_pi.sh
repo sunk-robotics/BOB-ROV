@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_py.sh
+# setup_pi.sh
 
 set -e # stop on any error
 
