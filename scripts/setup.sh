@@ -3,14 +3,14 @@
 
 set -e # stop on any error
 
-PI="bob-rov-rp5"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PI="sunk@bob-rov-rp5"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "==> Copying setup script to Pi..."
-scp "$SCRIPT_DIR/setup_py.sh" "$PI:/tmp/setup_py.sh"
+scp "$SCRIPT_DIR/setup_pi.sh" "$PI:/tmp/setup_pi.sh"
 
 echo "==> Running setup on Pi (this will take a while)..."
-ssh -t "$PI" "bash /tmp/setup_py.sh"
+ssh -t "$PI" "bash /tmp/setup_pi.sh"
 
 echo "==> Waiting for Pi to reboot..."
 sleep 30

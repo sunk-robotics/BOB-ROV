@@ -1,0 +1,176 @@
+BasedOnStyle: Google
+ColumnLimit: 100
+
+AlignArrayOfStructures: Left
+
+BreakBeforeBinaryOperators: NonAssignment
+AlignOperands: AlignAfterOperator
+
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortNamespacesOnASingleLine: false
+AllowShortRecordOnASingleLine: Empty
+
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterControlStatement: MultiLine
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+BreakAfterOpenBracketBracedList: true
+BreakAfterOpenBracketFunction: true
+BreakAfterOpenBracketIf: true
+BreakAfterOpenBracketLoop: true
+BreakAfterOpenBracketSwitch: true
+BreakAfterReturnType: Automatic
+BreakBeforeBraces: Custom
+BreakBeforeCloseBracketBracedList: true
+BreakBeforeCloseBracketFunction: true
+BreakBeforeCloseBracketIf: true
+BreakBeforeCloseBracketLoop: true
+BreakBeforeCloseBracketSwitch: true
+BreakBeforeReturnType: None
+BreakBeforeTemplateCloser: true
+BreakBeforeTernaryOperators: true
+CompactNamespaces: false
+Cpp11BracedListStyle: FunctionCall
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: LogicalBlock
+
+EnumTrailingComma: Remove
+
+FixNamespaceComments: true
+
+IncludeBlocks: Regroup
+
+IndentAccessModifiers: false
+AccessModifierOffset: -1
+
+IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentExportBlock: true
+IndentExternBlock: Indent
+IndentGotoLabels: InnerIndent
+
+IndentPPDirectives: AfterHash
+IndentRequiresClause: true
+IndentWidth: 2
+
+IndentWrappedFunctionNames: false
+InsertBraces: false
+
+IntegerLiteralSeparator:
+  Binary: 4
+  Decimal: 3
+  Hex: 2
+
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: false
+  AtStartOfFile: false
+
+KeepFormFeed: false
+
+NumericLiteralCase:
+  ExponentLetter: Lower
+  HexDigit: Upper
+  Prefix: Lower
+  Suffix: Lower
+
+LambdaBodyIndentation: Signature
+
+LineEnding: DeriveLF
+
+MainIncludeChar: Quote
+
+MaxEmptyLinesToKeep: 2
+
+NamespaceIndentation: All
+ShortNamespaceLines: 0
+
+BinPackArguments: false
+BinPackParameters: false
+PackArguments:
+  BinPack: OnePerLine
+  BreakAfter: 3
+PackConstructorInitializers: CurrentLine
+PackParameters:
+  BinPack: OnePerLine
+  BreakAfter: 3
+
+DerivePointerAlignment: false
+ReferenceAlignment: Pointer
+PointerAlignment: Left
+
+ReflowComments: Always
+
+RemoveBracesLLVM: false
+
+RemoveEmptyLinesInUnwrappedLines: true
+RemoveParentheses: Leave
+RemoveSemicolon: false
+
+RequiresClausePosition: OwnLine
+RequiresExpressionIndentation: OuterScope
+
+SeparateDefinitionBlocks: Always
+
+SkipMacroDefinitionBody: false
+
+SortIncludes:
+  Enabled: true
+  IgnoreCase: false
+  IgnoreExtension: false
+
+SortUsingDeclarations: LexicographicNumeric
+
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterOperatorKeyword: false
+SpaceAfterTemplateKeyword: false
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeEnumUnderlyingTypeColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeJsonColon: false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+
+SpaceInEmptyBraces: Never
+
+SpacesBeforeTrailingComments: 2
+
+SpacesInAngles: Never
+SpacesInContainerLiterals: false
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: 1
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+
+Standard: Auto
+
+UseTab: Never
+
+WrapNamespaceBodyWithEmptyLines: Never

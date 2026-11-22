@@ -1,0 +1,20 @@
+sudo pro attach <token>
+sudo pro enable realtime-kernel --variant=raspi
+sudo reboot
+sudo groupadd realtime
+sudo usermod -aG realtime <user>
+sudo systemctl disable --now cron
+
+TIMERS=(
+  apt-daily.timer
+  apt-daily-upgrade.timer
+  sysstat-collect.timer
+  sysstat-summary.timer
+  fwupd-refresh.timer
+  motd-news.timer
+  update-notifier-motd.timer
+  update-notifier-download.timer
+)
+ 
+systemctl mask --now "${TIMERS[@]}"
+sudo apt-get remove -y unattended-upgrades

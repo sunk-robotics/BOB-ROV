@@ -1,0 +1,16 @@
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "D"]
+ignore = ["D100", "D104"]                     # no docstrings needed on class or module level
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"test/**" = ["D"]   # no docstrings required in tests
+"launch/**" = ["D"] # launch files rarely need them

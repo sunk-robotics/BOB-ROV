@@ -5,7 +5,7 @@ set -e # exit on any error
 
 PI="bob-rov-rp5"
 PI_WS="/home/sunk/ros2_ws"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "==> Syncing files..."
 rsync -avz --delete \
