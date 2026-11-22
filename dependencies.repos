@@ -12,7 +12,7 @@ repositories:
     url: https://github.com/christianrauch/camera_ros.git
     version: 0.8.1
 
-  # This is a modified version of the original Bosch library to allow me to smuggle in the I2cBus pointer
+  # This is a modified version of the original Bosch library to allow me to snuggle in the I2cBus pointer
   bno055_vendor:
     type: git
     url: https://github.com/Rtificer/BNO055_SensorAPI.git

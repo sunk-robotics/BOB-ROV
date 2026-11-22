@@ -3,6 +3,10 @@ sudo pro enable realtime-kernel --variant=raspi
 sudo reboot
 sudo groupadd realtime
 sudo usermod -aG realtime <user>
+
+
+
+
 sudo systemctl disable --now cron
 
 TIMERS=(

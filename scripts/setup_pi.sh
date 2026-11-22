@@ -3,9 +3,28 @@
 
 set -e # stop on any error
 
+: "${UBUNTU_PRO_TOKEN:?UBUNTU_PRO_TOKEN must be set (passed in by setup.sh)}"
+
 PI_WS="/home/sunk/ros2_ws"
 mkdir -p "$PI_WS"
 cd "$PI_WS"
+
+# Remove automatic background updates so nothing interrupts realtime work
+# or holds the apt/dpkg lock during setup
+sudo systemctl disable --now cron
+
+TIMERS_TO_MASK=(
+  apt-daily.timer
+  apt-daily-upgrade.timer
+  sysstat-collect.timer
+  sysstat-summary.timer
+  fwupd-refresh.timer
+  motd-news.timer
+  update-notifier-motd.timer
+  update-notifier-download.timer
+)
+sudo systemctl mask --now "${TIMERS_TO_MASK[@]}"
+sudo apt-get remove -y unattended-upgrades
 
 # Configure apt sources — required for ROS2 binary install on Ubuntu Pi
 # (Pi Ubuntu images don't include noble-updates/backports by default)
@@ -27,8 +46,11 @@ if ! grep -q "dtparam=i2c_arm=on" /boot/firmware/config.txt; then
   echo "dtparam=i2c_arm=on" | sudo tee -a /boot/firmware/config.txt
 fi
 
+# Create the realtime group (--force: no error if it already exists)
+sudo groupadd --force realtime
+
 # Add user to nessesary groups
-sudo usermod -aG gpio,i2c,spi,dialout,video sunk
+sudo usermod -aG gpio,i2c,spi,dialout,video,realtime sunk
 
 # Add ROS2 apt source
 export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
@@ -79,5 +101,11 @@ rosdep install -y --from-paths src --ignore-src \
 if ! grep -q "source /opt/ros/jazzy/setup.bash" ~/.bashrc; then
   echo "source /opt/ros/jazzy/setup.bash" >>~/.bashrc
 fi
+
+# Realtime kernel (Ubuntu Pro). Takes effect on the reboot below.
+if ! sudo pro status --format json | grep -q '"attached": true'; then
+  sudo pro attach "$UBUNTU_PRO_TOKEN"
+fi
+sudo pro enable realtime-kernel --variant=raspi --assume-yes
 
 sudo reboot || true
