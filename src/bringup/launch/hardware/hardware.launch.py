@@ -5,13 +5,15 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.substitutions import FindPackageShare
 
+
 def hardware_launch(filename, args={}):
     return IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([FindPackageShare("bringup"), "launch", "hardware", filename])
-        ]),
-        launch_arguments=args.items()
+        PythonLaunchDescriptionSource(
+            [PathJoinSubstitution([FindPackageShare('bringup'), 'launch', 'hardware', filename])]
+        ),
+        launch_arguments=args.items(),
     )
+
 
 def generate_launch_description():
     container = ComposableNodeContainer(
@@ -23,10 +25,12 @@ def generate_launch_description():
         output='screen',
     )
 
-    return LaunchDescription([
-        container, 
-        hardware_launch("imu.launch.py", {'container': 'rov_container'}),
-        hardware_launch("temp_humid.launch.py", {'container': 'rov_container'}),
-        hardware_launch("webrtc.launch.py", {'container': 'rov_container'}),
-        hardware_launch("camera.launch.py", {'container': 'rov_container'})
-    ])
+    return LaunchDescription(
+        [
+            container,
+            hardware_launch('imu.launch.py', {'container': 'rov_container'}),
+            hardware_launch('temp_humid.launch.py', {'container': 'rov_container'}),
+            hardware_launch('webrtc.launch.py', {'container': 'rov_container'}),
+            hardware_launch('camera.launch.py', {'container': 'rov_container'}),
+        ]
+    )

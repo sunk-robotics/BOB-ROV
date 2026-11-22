@@ -1,5 +1,13 @@
 #pragma once
 
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <linux/i2c.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+#include <array>
+#include <cstdint>
 #include <cstring>
 #include <expected>
 #include <memory>
@@ -7,35 +15,33 @@
 #include <span>
 #include <system_error>
 
-#include <fcntl.h>
-#include <linux/i2c-dev.h>
-#include <linux/i2c.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-
 #ifdef I2C_UTILS_ROS_LOGGING
 #  include <rclcpp/logging.hpp>
 #  define I2C_BUS_LOG_ERROR(fmt, ...) RCLCPP_ERROR(rclcpp::get_logger("I2cBus"), fmt, ##__VA_ARGS__)
 #else
 #  include <cstdio>
-#  define I2C_BUS_LOG_ERROR(fmt, ...)                                                              \
+#  define I2C_BUS_LOG_ERROR(fmt, ...) \
     std::fprintf(stderr, "[I2cBus] ERROR: " fmt "\n", ##__VA_ARGS__)
 #endif
 
-// Then in the destructor, just:
+class I2cBus
+{
+ public:
+  I2cBus(const I2cBus&) = delete;
+  I2cBus(I2cBus&&) = delete;
+  I2cBus& operator=(const I2cBus&) = delete;
+  I2cBus& operator=(I2cBus&&) = delete;
 
-class I2cBus {
-public:
-  I2cBus(const I2cBus &) = delete;
-  I2cBus(I2cBus &&) = delete;
-  I2cBus &operator=(const I2cBus &) = delete;
-  I2cBus &operator=(I2cBus &&) = delete;
-
-  enum class BusNum : uint8_t { bus_0 = 0, bus_1 = 1 };
+  enum class BusNum : uint8_t
+  {
+    bus_0 = 0,
+    bus_1 = 1
+  };
   static constexpr uint8_t kMaxBusNum = 1;
 
-  [[nodiscard]] static std::expected<std::shared_ptr<I2cBus>, std::error_code>
-  get_instance(BusNum bus_num) noexcept
+  [[nodiscard]] static std::expected<std::shared_ptr<I2cBus>, std::error_code> get_instance(
+      BusNum bus_num
+  ) noexcept
   {
     static std::mutex registry_mutex;
     static std::array<std::weak_ptr<I2cBus>, kBusPaths.size()> bus_registry;
@@ -45,7 +51,7 @@ public:
     auto idx = static_cast<uint8_t>(bus_num);
 
     // returns weak_ptr<I2cBus>(), if key does not yet exist
-    auto &weak = bus_registry[idx];
+    auto& weak = bus_registry[idx];
 
     if (std::shared_ptr<I2cBus> shared = weak.lock()) {
       return shared;
@@ -57,8 +63,8 @@ public:
       return std::unexpected(std::error_code(errno, std::system_category()));
     }
 
-    auto shared = std::shared_ptr<I2cBus>(new I2cBus(fd)); // creates new bus
-    weak = shared;                                         // Add to registry map
+    auto shared = std::shared_ptr<I2cBus>(new I2cBus(fd));  // creates new bus
+    weak = shared;                                          // Add to registry map
     return shared;
   }
 
@@ -80,11 +86,11 @@ public:
         {.addr = addr,
          .flags = 0,
          .len = static_cast<uint16_t>(write_buf.size()),
-         .buf = const_cast<uint8_t *>(write_buf.data())},
+         .buf = const_cast<uint8_t*>(write_buf.data())},
         {.addr = addr,
          .flags = I2C_M_RD,
          .len = static_cast<uint16_t>(read_buf.size()),
-         .buf = read_buf.data()},
+         .buf = read_buf.data()                       },
     };
 
     return transaction(msgs);
@@ -97,7 +103,8 @@ public:
         .addr = addr,
         .flags = I2C_M_RD,
         .len = static_cast<uint16_t>(read_buf.size()),
-        .buf = read_buf.data()};
+        .buf = read_buf.data()
+    };
 
     return transaction({&msg, 1});
   }
@@ -109,7 +116,8 @@ public:
         .addr = addr,
         .flags = 0,
         .len = static_cast<uint16_t>(write_buf.size()),
-        .buf = const_cast<uint8_t *>(write_buf.data())};
+        .buf = const_cast<uint8_t*>(write_buf.data())
+    };
 
     return transaction({&msg, 1});
   }
@@ -124,8 +132,8 @@ public:
     }
   }
 
-private:
-  static constexpr std::array<const char *, 2> kBusPaths{"/dev/i2c-0", "/dev/i2c-1"};
+ private:
+  static constexpr std::array<const char*, 2> kBusPaths{"/dev/i2c-0", "/dev/i2c-1"};
   explicit I2cBus(int fd) : fd_(fd) {};
   int fd_ = -1;
   std::mutex bus_mutex_;

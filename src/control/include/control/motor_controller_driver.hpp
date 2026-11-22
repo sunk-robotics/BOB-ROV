@@ -7,42 +7,57 @@
 #include <type_traits>
 
 #include "rclcpp/rclcpp.hpp"
+#include "spi/spi_bus.hpp"
 
-#include "spi_utils/spi_bus.hpp"
+enum class MotorControllerErrorCode : uint8_t
+{
+  invalid_throttle_value = 1,
+  crc_failed = 2
+};
 
-enum class MotorControllerErrorCode : uint8_t { invalid_throttle_value = 1, crc_failed = 2 };
+class MotorControllerErrorCategory : public std::error_category
+{
+ public:
+  [[nodiscard]] const char* name() const noexcept override
+  {
+    return "MotorController";
+  }
 
-class MotorControllerErrorCategory : public std::error_category {
-public:
-  [[nodiscard]] const char *name() const noexcept override { return "MotorController"; }
   [[nodiscard]] std::string message(int ev) const noexcept override
   {
     switch (static_cast<MotorControllerErrorCode>(ev)) {
       case MotorControllerErrorCode::invalid_throttle_value:
         return "Provided throttle value exceeded range of [-1.0, 1.0]";
-      case MotorControllerErrorCode::crc_failed: return "Returned crc value is incorrect";
-      default: return "Unknown motor controller error!";
+      case MotorControllerErrorCode::crc_failed:
+        return "Returned crc value is incorrect";
+      default:
+        return "Unknown motor controller error!";
     }
   }
 };
 
-inline const MotorControllerErrorCategory &motor_controller_error_category()
+inline const MotorControllerErrorCategory& motor_controller_error_category()
 {
   static MotorControllerErrorCategory instance;
   return instance;
 }
 
 inline std::error_code make_error_code(MotorControllerErrorCode e) noexcept
-{ return {static_cast<int>(e), motor_controller_error_category()}; }
+{
+  return {static_cast<int>(e), motor_controller_error_category()};
+}
 
-namespace std {
-template <> struct is_error_code_enum<MotorControllerErrorCode> : true_type {};
-} // namespace std
+namespace std
+{
+  template<>
+  struct is_error_code_enum<MotorControllerErrorCode> : true_type {};
+}  // namespace std
 
-class MotorControllerDriver {
-public:
-  MotorControllerDriver(const MotorControllerDriver &) = delete;
-  MotorControllerDriver &operator=(const MotorControllerDriver &) = delete;
+class MotorControllerDriver
+{
+ public:
+  MotorControllerDriver(const MotorControllerDriver&) = delete;
+  MotorControllerDriver& operator=(const MotorControllerDriver&) = delete;
 
   [[nodiscard]] static std::expected<std::unique_ptr<MotorControllerDriver>, std::error_code>
   create(std::shared_ptr<SpiBus> bus, uint32_t speed, uint8_t motor_pole_pairs) noexcept
@@ -52,17 +67,18 @@ public:
       return std::unexpected(result.error());
 
     return std::unique_ptr<MotorControllerDriver>(
-        new MotorControllerDriver(std::move(bus), motor_pole_pairs));
+        new MotorControllerDriver(std::move(bus), motor_pole_pairs)
+    );
   }
 
   std::expected<void, std::error_code> transfer(
-      const std::array<float, 8> &throttles,
+      const std::array<float, 8>& throttles,
       uint8_t command_byte,
-      std::array<uint16_t, 8> &rpm) noexcept
+      std::array<uint16_t, 8>& rpm
+  ) noexcept
   {
-
     // bit layout is sssbbbbbbbbb where s = shift and b = base.
-    static constexpr uint16_t kErpmBaseMask = 0x01FF;
+    static constexpr uint16_t kErpmBaseMask = 0x01'FF;
     static constexpr uint8_t kErpmShiftPos = 9;
 
     std::array<uint16_t, 8> int_throttles;
@@ -71,7 +87,7 @@ public:
       if (throttles[i] > 1 || throttles[i] < -1)
         return std::unexpected(MotorControllerErrorCode::invalid_throttle_value);
 
-      int_throttles[i] = static_cast<int16_t>(throttles[i] * 1024) + 1024;
+      int_throttles[i] = static_cast<int16_t>(throttles[i] * 1'024) + 1'024;
     }
 
     // pack throttle values
@@ -95,18 +111,18 @@ public:
 
     unpack_12bit(std::span<uint8_t, 12>(read_buf.data(), 12), rpm);
     for (uint8_t i = 0; i < 8; ++i) {
-      rpm[i] = (rpm[i] & kErpmBaseMask) << (rpm[i] >> kErpmShiftPos) // extract eRPM
-                                               / motor_pole_pairs_;  // convert to rpm
+      rpm[i] = (rpm[i] & kErpmBaseMask) << (rpm[i] >> kErpmShiftPos)  // extract eRPM
+                                               / motor_pole_pairs_;   // convert to rpm
     }
 
     return {};
   }
 
-private:
+ private:
   explicit MotorControllerDriver(std::shared_ptr<SpiBus> bus, uint8_t motor_pole_pairs)
-      : bus_(std::move(bus)), motor_pole_pairs_(motor_pole_pairs)
-  {
-  }
+      : bus_(std::move(bus)),
+        motor_pole_pairs_(motor_pole_pairs)
+  {}
 
   static constexpr size_t kDataLength = 12;
 
@@ -144,12 +160,12 @@ private:
   {
     out[0] = (static_cast<uint16_t>(in[0]) << 3) | (in[1] >> 5);
     out[1] = (static_cast<uint16_t>(in[1] & 0x1F) << 6) | (in[2] >> 2);
-    out[2] = (static_cast<uint16_t>(in[2] & 0x03) << 9) | (static_cast<uint16_t>(in[3]) << 1) |
-             (in[4] >> 7);
+    out[2] = (static_cast<uint16_t>(in[2] & 0x03) << 9) | (static_cast<uint16_t>(in[3]) << 1)
+           | (in[4] >> 7);
     out[3] = (static_cast<uint16_t>(in[4] & 0x7F) << 4) | (in[5] >> 4);
     out[4] = (static_cast<uint16_t>(in[5] & 0x0F) << 7) | (in[6] >> 1);
-    out[5] = (static_cast<uint16_t>(in[6] & 0x01) << 10) | (static_cast<uint16_t>(in[7]) << 2) |
-             (in[8] >> 6);
+    out[5] = (static_cast<uint16_t>(in[6] & 0x01) << 10) | (static_cast<uint16_t>(in[7]) << 2)
+           | (in[8] >> 6);
     out[6] = (static_cast<uint16_t>(in[8] & 0x3F) << 5) | (in[9] >> 3);
     out[7] = (static_cast<uint16_t>(in[9] & 0x07) << 8) | in[10];
   }
@@ -167,7 +183,7 @@ private:
   }
 
   static constexpr uint8_t kModeFlags =
-      SPI_MODE_0; // also chip select low, don't toggle cs after every word, MSB first
+      SPI_MODE_0;  // also chip select low, don't toggle cs after every word, MSB first
 
   static constexpr uint8_t kCrcInitVal = 0x0;
   static constexpr uint8_t kCrcPolynomial = 0x83;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(spi_utils)
+project(i2c)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
@@ -12,27 +12,27 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 
-add_library(spi_utils INTERFACE)
+add_library(i2c INTERFACE)
 
-target_include_directories(spi_utils INTERFACE
+target_include_directories(i2c INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-option(SPI_UTILS_ROS_LOGGING "Use rlcpp logging" OFF)
+option(I2C_ROS_LOGGING "Use rclcpp logging" OFF)
 
-if(SPI_UTILS_ROS_LOGGING)
+if(I2C_ROS_LOGGING)
   find_package(rclcpp REQUIRED)
-  target_link_libraries(spi_utils INTERFACE rclcpp::rclcpp)
-  target_compile_definitions(spi_utils INTERFACE SPI_UTILS_ROS_LOGGING)
+  target_link_libraries(i2c INTERFACE rclcpp::rclcpp)
+  target_compile_definitions(i2c INTERFACE I2C_ROS_LOGGING)
   ament_export_dependencies(rclcpp)
 endif()
 
 install(DIRECTORY include/ DESTINATION include)
+install(TARGETS i2c EXPORT i2c_targets)
 
-install(TARGETS spi_utils EXPORT spi_utils_targets)
-
-ament_export_targets(spi_utils_targets HAS_LIBRARY_TARGET)
+ament_export_targets(i2c_targets HAS_LIBRARY_TARGET)
+# ament_export_include_directories(include)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -45,8 +45,8 @@ if(BUILD_TESTING)
   # set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 
-  add_executable(test_spi_bus test/test_spi_bus.cpp)
-  target_link_libraries(test_spi_bus PRIVATE spi_utils)
+  add_executable(test_i2c_bus test/test_i2c_bus.cpp)
+  target_link_libraries(test_i2c_bus PRIVATE i2c)
 endif()
 
 ament_package()

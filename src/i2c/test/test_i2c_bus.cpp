@@ -1,5 +1,7 @@
-#include "i2c_utils/i2c_bus.hpp"
+#include <cstdint>
 #include <cstdio>
+
+#include "i2c/i2c_bus.hpp"
 
 int main()
 {

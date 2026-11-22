@@ -1,5 +1,12 @@
 #pragma once
 
+#include <fcntl.h>
+#include <linux/spi/spidev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+#include <array>
+#include <cstdint>
 #include <cstring>
 #include <expected>
 #include <map>
@@ -7,10 +14,7 @@
 #include <mutex>
 #include <span>
 #include <system_error>
-
-#include <fcntl.h>
-#include <linux/spi/spidev.h>
-#include <sys/ioctl.h>
+#include <utility>
 
 #include "spi_err.hpp"
 
@@ -19,18 +23,23 @@
 #  define SPI_BUS_LOG_ERROR(fmt, ...) RCLCPP_ERROR(rclcpp::get_logger("SpiBus"), fmt, ##__VA_ARGS__)
 #else
 #  include <cstdio>
-#  define SPI_BUS_LOG_ERROR(fmt, ...)                                                              \
+#  define SPI_BUS_LOG_ERROR(fmt, ...) \
     std::fprintf(stderr, "[SpiBus] ERROR: " fmt "\n", ##__VA_ARGS__)
 #endif
 
-class SpiBus {
-public:
-  SpiBus(const SpiBus &) = delete;
-  SpiBus(SpiBus &&) = delete;
-  SpiBus &operator=(const SpiBus &) = delete;
-  SpiBus &operator=(SpiBus &&) = delete;
+class SpiBus
+{
+ public:
+  SpiBus(const SpiBus&) = delete;
+  SpiBus(SpiBus&&) = delete;
+  SpiBus& operator=(const SpiBus&) = delete;
+  SpiBus& operator=(SpiBus&&) = delete;
 
-  enum class BusNum { spi_0, spi_1 };
+  enum class BusNum
+  {
+    spi_0,
+    spi_1
+  };
   static constexpr uint8_t kMaxBusNum = 1;
   static constexpr uint8_t kMaxCsNum = 2;
 
@@ -49,7 +58,7 @@ public:
     }
 
     auto key = std::make_pair(bus, cs);
-    auto &weak = cs_registry[key];
+    auto& weak = cs_registry[key];
     if (weak.lock()) {
       return std::unexpected(make_error_code(SpiErrorCode::cs_in_use));
     }
@@ -71,8 +80,9 @@ public:
     return shared;
   };
 
-  [[nodiscard]] std::expected<void, std::error_code>
-  transaction(std::span<spi_ioc_transfer> msgs) noexcept
+  [[nodiscard]] std::expected<void, std::error_code> transaction(
+      std::span<spi_ioc_transfer> msgs
+  ) noexcept
   {
     // 0 is ripped from SPI_IOC_MESSAGE implemetnation
     uint32_t request = _IOC(_IOC_WRITE, SPI_IOC_MAGIC, 0, msgs.size() * sizeof(spi_ioc_transfer));
@@ -89,7 +99,8 @@ public:
   {
     if (read_buf.size() != write_buf.size()) {
       return std::unexpected(
-          std::error_code(make_error_code(SpiErrorCode::missmatched_transfer_bus_size)));
+          std::error_code(make_error_code(SpiErrorCode::missmatched_transfer_bus_size))
+      );
     }
 
     // zero all fields; 0 is used as use default as set by configure()
@@ -111,8 +122,9 @@ public:
     return transaction({&transfer, 1});
   }
 
-  [[nodiscard]] std::expected<void, std::error_code>
-  write(std::span<const uint8_t> write_buf) noexcept
+  [[nodiscard]] std::expected<void, std::error_code> write(
+      std::span<const uint8_t> write_buf
+  ) noexcept
   {
     spi_ioc_transfer transfer{};
     transfer.tx_buf = static_cast<uint64_t>(reinterpret_cast<std::uintptr_t>(write_buf.data()));
@@ -138,11 +150,14 @@ public:
     return {};
   }
 
-  static std::expected<const char *, std::error_code> get_path(BusNum bus, uint8_t cs) noexcept
+  static std::expected<const char*, std::error_code> get_path(BusNum bus, uint8_t cs) noexcept
   {
-    static constexpr std::array<const char *, 2> spi0_paths{"/dev/spidev0.0", "/dev/spidev0.1"};
-    static constexpr std::array<const char *, 3> spi1_paths{
-        "/dev/spidev1.0", "/dev/spidev1.1", "/dev/spidev1.2"};
+    static constexpr std::array<const char*, 2> spi0_paths{"/dev/spidev0.0", "/dev/spidev0.1"};
+    static constexpr std::array<const char*, 3> spi1_paths{
+        "/dev/spidev1.0",
+        "/dev/spidev1.1",
+        "/dev/spidev1.2"
+    };
 
     switch (bus) {
       case BusNum::spi_0:
@@ -171,9 +186,10 @@ public:
     }
   }
 
-private:
+ private:
   explicit SpiBus(int fd, std::shared_ptr<std::mutex> bus_mutex)
-      : fd_(fd), bus_mutex_(bus_mutex) {};
+      : fd_(fd),
+        bus_mutex_(bus_mutex) {};
   int fd_ = -1;
   std::shared_ptr<std::mutex> bus_mutex_;
 };

@@ -15,13 +15,13 @@ find_package(ament_cmake REQUIRED)
 
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(spi_utils REQUIRED)
+find_package(spi REQUIRED)
 
 add_library(motor_controller_node SHARED src/motor_controller_node.cpp)
 
 target_include_directories(motor_controller_node PUBLIC include)
 
-target_link_libraries(motor_controller_node spi_utils::spi_utils)
+target_link_libraries(motor_controller_node spi::spi)
 
 ament_target_dependencies(motor_controller_node rclcpp rclcpp_components)
 

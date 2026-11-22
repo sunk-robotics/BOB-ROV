@@ -1,9 +1,10 @@
-#include "spi_utils/spi_bus.hpp"
+#include "spi/spi_bus.hpp"
 #include <cstdio>
+#include <cstdint>
 
 int main()
 {
-  auto bus = SpiBus::get_instance(SpiBus::Bus::Spi0, 0);
+  auto bus = SpiBus::get_instance(SpiBus::BusNum::spi_0, 0);
   if (!bus) {
     std::printf("Failed to open bus: %s\n", bus.error().message().c_str());
     return 1;
